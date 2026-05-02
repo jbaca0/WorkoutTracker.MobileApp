@@ -1,35 +1,45 @@
+import { Text } from 'react-native';
 import { Tabs } from 'expo-router';
-import React from 'react';
+import { Colors } from '../../src/Theme/colors';
 
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+function TabIcon({ icon }: { icon: string }) {
+    return <Text style={{ fontSize: 20 }}>{icon}</Text>;
+}
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
-  return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
-        }}
-      />
-    </Tabs>
-  );
+    return (
+        <Tabs
+            screenOptions={{
+                headerShown: false,
+                tabBarStyle: {
+                    backgroundColor: Colors.surface,
+                    borderTopColor: Colors.border,
+                },
+                tabBarActiveTintColor: Colors.primary,
+                tabBarInactiveTintColor: Colors.textSecondary,
+            }}
+        >
+            <Tabs.Screen
+                name="exercises"
+                options={{
+                    title: 'Exercises',
+                    tabBarIcon: () => <TabIcon icon="🏋️" />,
+                }}
+            />
+            <Tabs.Screen
+                name="home"
+                options={{
+                    title: 'Home',
+                    tabBarIcon: () => <TabIcon icon="🏠" />,
+                }}
+            />
+            <Tabs.Screen
+                name="history"
+                options={{
+                    title: 'History',
+                    tabBarIcon: () => <TabIcon icon="📋" />,
+                }}
+            />
+        </Tabs>
+    );
 }

@@ -1,24 +1,25 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
-
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
+import { NotificationProvider } from '../src/Hooks/useNotification';
+import { ActiveWorkoutProvider } from '../src/Hooks/useActiveWorkout';
+import { AuthProvider } from '../src/Hooks/useAuth';
+import { loadTokensFromStorage } from '../src/Utils/tokenStorage';
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+    useEffect(() => {
+        // Load JWT tokens from persistent storage into memory on app start
+        loadTokensFromStorage();
+    }, []);
 
-  return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
-  );
+    return (
+        <NotificationProvider>
+            <ActiveWorkoutProvider>
+                <AuthProvider>
+                    <StatusBar style="light" />
+                    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#121212' } }} />
+                </AuthProvider>
+            </ActiveWorkoutProvider>
+        </NotificationProvider>
+    );
 }
