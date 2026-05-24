@@ -22,11 +22,8 @@ export default function LoginScreen() {
     async function handleLogin() {
         if (!email || !password) return;
         setLoading(true);
-        try {
-            await login(email, password);
-        } finally {
-            setLoading(false);
-        }
+        await login(email, password);
+        setLoading(false);
     }
 
     return (

@@ -12,28 +12,23 @@ export class BaseService {
             return false;
         }
 
-        try {
-            const response = await fetch(`${this.serverUrl}/auth/refresh`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ refreshToken }),
-            });
+        const response = await fetch(`${this.serverUrl}/auth/refresh`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ refreshToken }),
+        });
 
-            if (!response.ok) {
-                clearTokens();
-                return false;
-            }
-
-            const authResponse: AuthResponse = await response.json();
-            setAccessToken(authResponse.accessToken);
-            setRefreshToken(authResponse.refreshToken);
-            return true;
-        } catch {
+        if (!response.ok) {
             clearTokens();
             return false;
         }
+
+        const authResponse: AuthResponse = await response.json();
+        setAccessToken(authResponse.accessToken);
+        setRefreshToken(authResponse.refreshToken);
+        return true;
     }
 
     protected static async fetchFromServer<T>(endpoint: string, body?: unknown, method?: string): Promise<T> {
@@ -55,32 +50,27 @@ export class BaseService {
             });
         };
 
-        try {
-            let response = await makeRequest(getAccessToken());
+        let response = await makeRequest(getAccessToken());
 
-            if (response.status === 401) {
-                const refreshed = await this.refreshToken();
-                if (refreshed) {
-                    response = await makeRequest(getAccessToken());
-                } else {
-                    triggerSessionExpired();
-                    throw new Error('Session expired. Please log in again.');
-                }
-            }
-
-            if (!response.ok) {
-                throw new Error(`Error when making request to ${endpoint}: ${await response.text()}`);
-            }
-
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                return await response.json() as T;
+        if (response.status === 401) {
+            const refreshed = await this.refreshToken();
+            if (refreshed) {
+                response = await makeRequest(getAccessToken());
             } else {
-                return {} as T;
+                triggerSessionExpired();
+                throw new Error('Session expired. Please log in again.');
             }
         }
-        catch (error: unknown) {
-            throw new Error(error instanceof Error ? error.message : 'An unexpected error occurred');
+
+        if (!response.ok) {
+            throw new Error(`Error when making request to ${endpoint}: ${await response.text()}`);
+        }
+
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            return await response.json() as T;
+        } else {
+            return {} as T;
         }
     }
 }

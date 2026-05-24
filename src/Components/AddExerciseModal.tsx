@@ -20,13 +20,13 @@ import { useNotification } from '../Hooks/useNotification';
 interface AddExerciseModalProps {
     visible: boolean;
     onClose: () => void;
-    onExercisesAdded: (exerciseIds: string[]) => void;
+    onExercisesAdded: (exerciseIds: string[]) => Promise<void>;
 }
 
 const AddExerciseModal: React.FC<AddExerciseModalProps> = ({ visible, onClose, onExercisesAdded }) => {
     const [exerciseInfos, setExerciseInfos] = useState<ExerciseInfo[]>([]);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [adding, setAdding] = useState(false);
     const [search, setSearch] = useState('');
     const [muscleFilter, setMuscleFilter] = useState<MuscleGroup | null>(null);
@@ -34,13 +34,11 @@ const AddExerciseModal: React.FC<AddExerciseModalProps> = ({ visible, onClose, o
     const { showError } = useNotification();
 
     useEffect(() => {
-        if (!visible) return;
-        setLoading(true);
         ExerciseInfoService.getExerciseInfos()
             .then(setExerciseInfos)
             .catch(() => showError('Failed to load exercises'))
             .finally(() => setLoading(false));
-    }, [visible]);
+    }, []);
 
     const filteredExercises = exerciseInfos.filter(ei => {
         const matchesName = ei.Name.toLowerCase().includes(search.toLowerCase());
@@ -63,14 +61,11 @@ const AddExerciseModal: React.FC<AddExerciseModalProps> = ({ visible, onClose, o
     async function handleAdd() {
         if (selectedIds.size === 0) return;
         setAdding(true);
-        try {
-            onExercisesAdded(Array.from(selectedIds));
-            setSelectedIds(new Set());
-            setSearch('');
-            setMuscleFilter(null);
-        } finally {
-            setAdding(false);
-        }
+        await onExercisesAdded(Array.from(selectedIds));
+        setSelectedIds(new Set());
+        setSearch('');
+        setMuscleFilter(null);
+        setAdding(false);
     }
 
     function handleClose() {
@@ -142,6 +137,7 @@ const AddExerciseModal: React.FC<AddExerciseModalProps> = ({ visible, onClose, o
                     <ActivityIndicator style={styles.loader} color={Colors.primary} size="large" />
                 ) : (
                     <FlatList
+                        style={styles.list}
                         data={filteredExercises}
                         keyExtractor={item => item.Id || String(item.Key)}
                         renderItem={({ item }) => {
@@ -161,7 +157,7 @@ const AddExerciseModal: React.FC<AddExerciseModalProps> = ({ visible, onClose, o
                                 </Pressable>
                             );
                         }}
-                        contentContainerStyle={styles.list}
+                        contentContainerStyle={styles.listContent}
                     />
                 )}
 
@@ -246,6 +242,9 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     list: {
+        flex: 1,
+    },
+    listContent: {
         paddingBottom: 8,
     },
     exerciseRow: {

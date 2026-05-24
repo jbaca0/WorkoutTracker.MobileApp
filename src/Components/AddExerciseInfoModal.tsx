@@ -30,16 +30,13 @@ const AddExerciseInfoModal: React.FC<AddExerciseInfoModalProps> = ({ visible, on
     async function handleAdd() {
         if (!exerciseName.trim()) return;
         setAdding(true);
-        try {
-            await ExerciseInfoService.addExerciseInfo(exerciseName.trim(), primaryMuscleGroup, secondaryMuscleGroups);
-            setExerciseName('');
-            setPrimaryMuscleGroup(MuscleGroup.Other);
-            setSecondaryMuscleGroups([]);
-            afterAdd?.();
-            onClose();
-        } finally {
-            setAdding(false);
-        }
+        await ExerciseInfoService.addExerciseInfo(exerciseName.trim(), primaryMuscleGroup, secondaryMuscleGroups);
+        setExerciseName('');
+        setPrimaryMuscleGroup(MuscleGroup.Other);
+        setSecondaryMuscleGroups([]);
+        afterAdd?.();
+        onClose();
+        setAdding(false);
     }
 
     function handleClose() {

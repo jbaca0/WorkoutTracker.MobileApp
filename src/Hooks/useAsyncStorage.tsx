@@ -11,11 +11,7 @@ function useAsyncStorage<T>(
     useEffect(() => {
         AsyncStorage.getItem(keyName).then(value => {
             if (value !== null) {
-                try {
-                    setStoredValue(JSON.parse(value));
-                } catch {
-                    setStoredValue(defaultValue);
-                }
+                setStoredValue(JSON.parse(value));
             }
             setLoaded(true);
         });

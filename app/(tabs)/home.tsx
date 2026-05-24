@@ -28,7 +28,7 @@ export default function HomeScreen() {
             setActiveWorkout(workoutId);
             router.push(`/workout/${workoutId}`);
         } catch {
-            showError('Failed to start workout');
+            showError('Failed to start workout. Please try again.');
         } finally {
             setLoading(false);
         }

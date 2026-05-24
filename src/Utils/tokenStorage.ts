@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 
 const ACCESS_TOKEN_KEY = 'accessToken';
 const REFRESH_TOKEN_KEY = 'refreshToken';
@@ -8,8 +8,8 @@ let inMemoryAccessToken: string | null = null;
 let inMemoryRefreshToken: string | null = null;
 
 export async function loadTokensFromStorage(): Promise<void> {
-    inMemoryAccessToken = await AsyncStorage.getItem(ACCESS_TOKEN_KEY);
-    inMemoryRefreshToken = await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
+    inMemoryAccessToken = await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
+    inMemoryRefreshToken = await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
 }
 
 export function getAccessToken(): string | null {
@@ -18,7 +18,7 @@ export function getAccessToken(): string | null {
 
 export function setAccessToken(token: string): void {
     inMemoryAccessToken = token;
-    AsyncStorage.setItem(ACCESS_TOKEN_KEY, token);
+    SecureStore.setItemAsync(ACCESS_TOKEN_KEY, token);
 }
 
 export function getRefreshToken(): string | null {
@@ -27,14 +27,14 @@ export function getRefreshToken(): string | null {
 
 export function setRefreshToken(token: string): void {
     inMemoryRefreshToken = token;
-    AsyncStorage.setItem(REFRESH_TOKEN_KEY, token);
+    SecureStore.setItemAsync(REFRESH_TOKEN_KEY, token);
 }
 
 export function clearTokens(): void {
     inMemoryAccessToken = null;
     inMemoryRefreshToken = null;
-    AsyncStorage.removeItem(ACCESS_TOKEN_KEY);
-    AsyncStorage.removeItem(REFRESH_TOKEN_KEY);
+    SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
+    SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
 }
 
 export function hasTokens(): boolean {
@@ -44,10 +44,8 @@ export function hasTokens(): boolean {
 export function isAccessTokenExpired(): boolean {
     const token = inMemoryAccessToken;
     if (!token) return true;
-    try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        return payload.exp * 1000 < Date.now();
-    } catch {
-        return true;
-    }
+    // JWT uses base64url — normalize to base64 before decoding
+    const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const payload = JSON.parse(atob(base64));
+    return payload.exp * 1000 < Date.now();
 }

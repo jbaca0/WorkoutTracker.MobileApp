@@ -1,20 +1,20 @@
+import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    View,
-    Text,
+    ActivityIndicator,
     FlatList,
     Pressable,
-    StyleSheet,
-    ActivityIndicator,
     SafeAreaView,
+    StyleSheet,
+    Text,
+    View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import AddExerciseInfoModal from '../../src/Components/AddExerciseInfoModal';
+import ExerciseInfo from '../../src/Domain/ExerciseInfo';
+import { MuscleGroupLabels } from '../../src/Enums/MuscleGroup';
 import { useActiveWorkout } from '../../src/Hooks/useActiveWorkout';
 import { useNotification } from '../../src/Hooks/useNotification';
 import { ExerciseInfoService } from '../../src/Services/ExerciseInfoService';
-import ExerciseInfo from '../../src/Domain/ExerciseInfo';
-import { MuscleGroupLabels } from '../../src/Enums/MuscleGroup';
-import AddExerciseInfoModal from '../../src/Components/AddExerciseInfoModal';
 import { Colors } from '../../src/Theme/colors';
 
 export default function ExercisesScreen() {
@@ -34,7 +34,7 @@ export default function ExercisesScreen() {
             const data = await ExerciseInfoService.getExerciseInfos();
             setExerciseInfos(data);
         } catch {
-            showError('Failed to load exercises');
+            showError('Failed to load exercises. Please try again.');
         } finally {
             setLoading(false);
         }

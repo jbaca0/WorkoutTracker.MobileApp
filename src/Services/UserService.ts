@@ -19,7 +19,7 @@ export class UserService extends BaseService {
             setAccessToken(authResponse.accessToken);
             setRefreshToken(authResponse.refreshToken);
         } else {
-            loginResult.errorMessage = await response.text();
+            loginResult.errorMessage = 'Invalid email or password.';
         }
         return loginResult;
     }
@@ -27,11 +27,7 @@ export class UserService extends BaseService {
     public static async logout() {
         const refreshToken = getRefreshToken();
         if (refreshToken) {
-            try {
-                await this.fetchFromServer('/auth/logout', { refreshToken });
-            } catch {
-                // Ignore logout errors, still clear tokens locally
-            }
+            await this.fetchFromServer('/auth/logout', { refreshToken });
         }
         clearTokens();
     }

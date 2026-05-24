@@ -1,5 +1,5 @@
 import { BaseService } from "./BaseService";
-import ExerciseInfo from "../Domain/ExerciseInfo";
+import { ExerciseInfo } from "../Domain/ExerciseInfo";
 import GetExerciseInfosResponse from "../DataTransferObjects/Responses/GetExerciseInfoResponse";
 import AddExerciseInfoResponse from "../DataTransferObjects/Responses/AddExerciseInfoResponse";
 import { MuscleGroup } from "../Enums/MuscleGroup";
@@ -9,13 +9,12 @@ export class ExerciseInfoService extends BaseService {
         exerciseName: string,
         primaryMuscleGroup: MuscleGroup,
         secondaryMuscleGroups: MuscleGroup[]
-    ): Promise<string> {
+    ): Promise<void> {
         await this.fetchFromServer<AddExerciseInfoResponse>('/addExerciseInfo', {
             name: exerciseName,
             primaryMuscleGroup: primaryMuscleGroup,
             secondaryMuscleGroups: secondaryMuscleGroups
         });
-        return '';
     }
 
     public static async getExerciseInfos(): Promise<ExerciseInfo[]> {

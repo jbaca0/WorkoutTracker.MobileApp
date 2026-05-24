@@ -21,6 +21,8 @@ import { generateWorkoutTitle } from '../../src/Utilities/WorkoutTitleGenerator'
 import useDebounce from '../../src/Hooks/useDebounce';
 import { Colors } from '../../src/Theme/colors';
 
+type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+
 export default function WorkoutScreen() {
     const { workoutId } = useLocalSearchParams<{ workoutId: string }>();
     const router = useRouter();
@@ -32,11 +34,13 @@ export default function WorkoutScreen() {
     const [saving, setSaving] = useState(false);
     const [cancelling, setCancelling] = useState(false);
     const [addingExercises, setAddingExercises] = useState(false);
+    const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
     const [showAddExercise, setShowAddExercise] = useState(false);
     const [showConfirmComplete, setShowConfirmComplete] = useState(false);
     const [showConfirmCancel, setShowConfirmCancel] = useState(false);
 
     const initialLoadComplete = useRef(false);
+    const saveStatusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const debouncedExercises = useDebounce(exercises, 3000);
 
     useEffect(() => {
@@ -47,7 +51,11 @@ export default function WorkoutScreen() {
                     setExercises(workout.Exercises);
                 }
             })
-            .catch(() => showError('Failed to load workout'))
+            .catch(() => {
+                clearActiveWorkout();
+                router.replace('/(tabs)/home');
+                showError('Your previous workout could not be found.');
+            })
             .finally(() => {
                 setLoading(false);
                 initialLoadComplete.current = true;
@@ -59,19 +67,28 @@ export default function WorkoutScreen() {
         if (!initialLoadComplete.current || !workoutId) return;
         if (debouncedExercises.length === 0) return;
 
+        setSaveStatus('saving');
         WorkoutService.save(new Workout({ Id: workoutId, Exercises: debouncedExercises }))
-            .catch(() => { /* silent auto-save failure */ });
+            .then(() => {
+                setSaveStatus('saved');
+                if (saveStatusTimeoutRef.current) clearTimeout(saveStatusTimeoutRef.current);
+                saveStatusTimeoutRef.current = setTimeout(() => setSaveStatus('idle'), 2000);
+            })
+            .catch(() => {
+                setSaveStatus('error');
+                showError('Failed to save workout. Check your connection.');
+            });
     }, [debouncedExercises, workoutId]);
 
     async function handleExercisesAdded(exerciseIds: string[]) {
-        setShowAddExercise(false);
         if (!workoutId) return;
         setAddingExercises(true);
         try {
             const added = await WorkoutService.addExercises(workoutId, exerciseIds);
             setExercises(prev => [...prev, ...added]);
+            setShowAddExercise(false);
         } catch {
-            showError('Failed to add exercises');
+            showError('Failed to add exercises. Please try again.');
         } finally {
             setAddingExercises(false);
         }
@@ -92,7 +109,7 @@ export default function WorkoutScreen() {
             clearActiveWorkout();
             router.replace(`/workout-history/${workoutId}`);
         } catch {
-            showError('Failed to save workout');
+            showError('Failed to save workout. Please try again.');
         } finally {
             setSaving(false);
         }
@@ -107,7 +124,7 @@ export default function WorkoutScreen() {
             clearActiveWorkout();
             router.replace('/(tabs)/home');
         } catch {
-            showError('Failed to cancel workout');
+            showError('Failed to cancel workout. Please try again.');
         } finally {
             setCancelling(false);
         }
@@ -123,7 +140,15 @@ export default function WorkoutScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <Text style={styles.title}>{generateWorkoutTitle(exercises)}</Text>
+            <View style={styles.header}>
+                <Pressable style={styles.backButton} onPress={() => router.replace('/(tabs)/home')}>
+                    <Text style={styles.backButtonText}>← Home</Text>
+                </Pressable>
+                <Text style={styles.title}>{generateWorkoutTitle(exercises)}</Text>
+                {saveStatus === 'saving' && <Text style={styles.saveStatus}>Saving…</Text>}
+                {saveStatus === 'saved' && <Text style={[styles.saveStatus, styles.saveStatusSaved]}>Saved</Text>}
+                {saveStatus === 'error' && <Text style={[styles.saveStatus, styles.saveStatusError]}>!</Text>}
+            </View>
 
             <ScrollView style={styles.exerciseList} contentContainerStyle={styles.exerciseListContent}>
                 {exercises.map(exercise => (
@@ -227,12 +252,41 @@ const styles = StyleSheet.create({
     loader: {
         flex: 1,
     },
-    title: {
-        color: Colors.text,
-        fontSize: 20,
-        fontWeight: '700',
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
         paddingHorizontal: 16,
         paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.border,
+        gap: 12,
+    },
+    backButton: {
+        paddingVertical: 4,
+        paddingRight: 8,
+    },
+    backButtonText: {
+        color: Colors.primary,
+        fontSize: 15,
+        fontWeight: '500',
+    },
+    title: {
+        color: Colors.text,
+        fontSize: 18,
+        fontWeight: '700',
+        flex: 1,
+    },
+    saveStatus: {
+        color: Colors.textSecondary,
+        fontSize: 12,
+    },
+    saveStatusSaved: {
+        color: Colors.primary,
+    },
+    saveStatusError: {
+        color: Colors.error,
+        fontWeight: '700',
+        fontSize: 16,
     },
     exerciseList: {
         flex: 1,
