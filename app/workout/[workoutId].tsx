@@ -8,6 +8,8 @@ import {
     ActivityIndicator,
     Modal,
     SafeAreaView,
+    KeyboardAvoidingView,
+    Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { WorkoutService } from '../../src/Services/WorkoutService';
@@ -150,50 +152,60 @@ export default function WorkoutScreen() {
                 {saveStatus === 'error' && <Text style={[styles.saveStatus, styles.saveStatusError]}>!</Text>}
             </View>
 
-            <ScrollView style={styles.exerciseList} contentContainerStyle={styles.exerciseListContent}>
-                {exercises.map(exercise => (
-                    <ExerciseComponent
-                        key={exercise.Key}
-                        exercise={exercise}
-                        onChange={onExerciseChange}
-                    />
-                ))}
-            </ScrollView>
-
-            <View style={styles.actions}>
-                <Pressable
-                    style={[styles.button, styles.buttonPrimary, addingExercises && styles.buttonDisabled]}
-                    onPress={() => setShowAddExercise(true)}
-                    disabled={addingExercises}
+            <KeyboardAvoidingView
+                style={styles.keyboardAvoid}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            >
+                <ScrollView
+                    style={styles.exerciseList}
+                    contentContainerStyle={styles.exerciseListContent}
+                    keyboardShouldPersistTaps="handled"
+                    keyboardDismissMode="interactive"
                 >
-                    {addingExercises
-                        ? <ActivityIndicator color="#fff" size="small" />
-                        : <Text style={styles.buttonText}>Add Exercise</Text>
-                    }
-                </Pressable>
+                    {exercises.map(exercise => (
+                        <ExerciseComponent
+                            key={exercise.Key}
+                            exercise={exercise}
+                            onChange={onExerciseChange}
+                        />
+                    ))}
+                </ScrollView>
 
-                <Pressable
-                    style={[styles.button, styles.buttonSecondary, (exercises.length === 0 || saving) && styles.buttonDisabled]}
-                    onPress={() => setShowConfirmComplete(true)}
-                    disabled={exercises.length === 0 || saving}
-                >
-                    {saving
-                        ? <ActivityIndicator color="#fff" size="small" />
-                        : <Text style={styles.buttonText}>Complete Workout</Text>
-                    }
-                </Pressable>
+                <View style={styles.actions}>
+                    <Pressable
+                        style={[styles.button, styles.buttonPrimary, addingExercises && styles.buttonDisabled]}
+                        onPress={() => setShowAddExercise(true)}
+                        disabled={addingExercises}
+                    >
+                        {addingExercises
+                            ? <ActivityIndicator color="#fff" size="small" />
+                            : <Text style={styles.buttonText}>Add Exercise</Text>
+                        }
+                    </Pressable>
 
-                <Pressable
-                    style={[styles.button, styles.buttonOutlineError, (saving || cancelling) && styles.buttonDisabled]}
-                    onPress={() => setShowConfirmCancel(true)}
-                    disabled={saving || cancelling}
-                >
-                    {cancelling
-                        ? <ActivityIndicator color={Colors.error} size="small" />
-                        : <Text style={styles.buttonOutlineErrorText}>Cancel Workout</Text>
-                    }
-                </Pressable>
-            </View>
+                    <Pressable
+                        style={[styles.button, styles.buttonSecondary, (exercises.length === 0 || saving) && styles.buttonDisabled]}
+                        onPress={() => setShowConfirmComplete(true)}
+                        disabled={exercises.length === 0 || saving}
+                    >
+                        {saving
+                            ? <ActivityIndicator color="#fff" size="small" />
+                            : <Text style={styles.buttonText}>Complete Workout</Text>
+                        }
+                    </Pressable>
+
+                    <Pressable
+                        style={[styles.button, styles.buttonOutlineError, (saving || cancelling) && styles.buttonDisabled]}
+                        onPress={() => setShowConfirmCancel(true)}
+                        disabled={saving || cancelling}
+                    >
+                        {cancelling
+                            ? <ActivityIndicator color={Colors.error} size="small" />
+                            : <Text style={styles.buttonOutlineErrorText}>Cancel Workout</Text>
+                        }
+                    </Pressable>
+                </View>
+            </KeyboardAvoidingView>
 
             <AddExerciseModal
                 visible={showAddExercise}
@@ -287,6 +299,9 @@ const styles = StyleSheet.create({
         color: Colors.error,
         fontWeight: '700',
         fontSize: 16,
+    },
+    keyboardAvoid: {
+        flex: 1,
     },
     exerciseList: {
         flex: 1,
