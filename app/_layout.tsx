@@ -1,17 +1,10 @@
-import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { NotificationProvider } from '../src/Hooks/useNotification';
 import { ActiveWorkoutProvider } from '../src/Hooks/useActiveWorkout';
 import { AuthProvider } from '../src/Hooks/useAuth';
-import { loadTokensFromStorage } from '../src/Utils/tokenStorage';
 
 export default function RootLayout() {
-    useEffect(() => {
-        // Load JWT tokens from persistent storage into memory on app start
-        loadTokensFromStorage();
-    }, []);
-
     return (
         <NotificationProvider>
             <ActiveWorkoutProvider>

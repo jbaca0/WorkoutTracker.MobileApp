@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import useAsyncStorage from "./useAsyncStorage";
 import { UserService } from "../Services/UserService";
 import { BaseService } from "../Services/BaseService";
-import { clearTokens, isAccessTokenExpired } from "../Utils/tokenStorage";
+import { clearTokens, isAccessTokenExpired, loadTokensFromStorage } from "../Utils/tokenStorage";
 import { setSessionExpiredHandler } from "../Utils/sessionManager";
 import { useActiveWorkout } from "./useActiveWorkout";
 
@@ -30,10 +30,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const router = useRouter();
     const [errorMessage, setErrorMessage] = useState<string>();
     const { clearActiveWorkout } = useActiveWorkout();
+    const [tokensLoaded, setTokensLoaded] = useState(false);
+
+    // On mount: load JWT tokens from SecureStore into memory
+    useEffect(() => {
+        loadTokensFromStorage().then(() => {
+            setTokensLoaded(true);
+        });
+    }, []);
 
     // On mount: check token expiry and attempt refresh if needed
     useEffect(() => {
         if (!authLoaded) return;
+        if (!tokensLoaded) return;
         if (!user) return;
         if (isAccessTokenExpired()) {
             BaseService.refreshToken().then(refreshed => {
@@ -45,7 +54,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 }
             });
         }
-    }, [authLoaded]);
+    }, [authLoaded, tokensLoaded]);
 
     // Register session expired handler
     useEffect(() => {
