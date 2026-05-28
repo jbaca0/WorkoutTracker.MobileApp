@@ -4,11 +4,11 @@ import {
     ActivityIndicator,
     FlatList,
     Pressable,
-    SafeAreaView,
     StyleSheet,
     Text,
     View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AddExerciseInfoModal from '../../src/Components/AddExerciseInfoModal';
 import ExerciseInfo from '../../src/Domain/ExerciseInfo';
 import { MuscleGroupLabels } from '../../src/Enums/MuscleGroup';
