@@ -1,0 +1,52 @@
+import WorkoutTemplate from '../Domain/WorkoutTemplate';
+import Exercise from '../Domain/Exercise';
+import Set from '../Domain/Set';
+import UserExerciseInfo from '../Domain/UserExerciseInfo';
+import CreateTemplateRequest from '../DataTransferObjects/Requests/WorkoutTemplate/CreateTemplateRequest';
+import UpdateTemplateRequest from '../DataTransferObjects/Requests/WorkoutTemplate/UpdateTemplateRequest';
+import GetTemplatesResponse from '../DataTransferObjects/Responses/WorkoutTemplate/GetTemplatesResponse';
+import StartWorkoutFromTemplateResponse from '../DataTransferObjects/Responses/WorkoutTemplate/StartWorkoutFromTemplateResponse';
+import { BaseService } from './BaseService';
+
+export interface StartTemplateResult {
+    workoutId: string;
+    exercises: Exercise[];
+}
+
+export class WorkoutTemplateService extends BaseService {
+    public static async getTemplates(): Promise<WorkoutTemplate[]> {
+        const response = await this.fetchFromServer<GetTemplatesResponse>('/getTemplates');
+        return response.templates.map(WorkoutTemplate.FromData);
+    }
+
+    public static async addTemplate(name: string, exerciseInfoIds: string[]): Promise<string> {
+        const request: CreateTemplateRequest = { name, exerciseInfoIds };
+        return await this.fetchFromServer<string>('/addTemplate', request);
+    }
+
+    public static async updateTemplate(templateId: string, name: string, exerciseInfoIds: string[]): Promise<void> {
+        const request: UpdateTemplateRequest = { templateId, name, exerciseInfoIds };
+        await this.fetchFromServer<void>('/updateTemplate', request, 'PUT');
+    }
+
+    public static async deleteTemplate(templateId: string): Promise<void> {
+        await this.fetchFromServer<void>(`/deleteTemplate/${templateId}`, undefined, 'DELETE');
+    }
+
+    public static async startWorkoutFromTemplate(templateId: string): Promise<StartTemplateResult> {
+        const response = await this.fetchFromServer<StartWorkoutFromTemplateResponse>(
+            '/startWorkoutFromTemplate',
+            { templateId }
+        );
+
+        const exercises = response.userExerciseInfos
+            .map(e => UserExerciseInfo.FromData(e))
+            .map(e => new Exercise({
+                ExerciseInfo: e.ExerciseInfo,
+                PreviousExercise: e.LatestExercise,
+                Sets: e.LatestExercise?.Sets.map(() => new Set()) ?? []
+            }));
+
+        return { workoutId: response.workoutId, exercises };
+    }
+}

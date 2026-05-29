@@ -40,6 +40,13 @@ export default function TabLayout() {
                     tabBarIcon: () => <TabIcon icon="📋" />,
                 }}
             />
+            <Tabs.Screen
+                name="plans"
+                options={{
+                    title: 'Plans',
+                    tabBarIcon: () => <TabIcon icon="📅" />,
+                }}
+            />
         </Tabs>
     );
 }

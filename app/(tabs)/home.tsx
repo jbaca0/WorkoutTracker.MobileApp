@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     View,
     Text,
@@ -12,6 +12,9 @@ import { useAuth } from '../../src/Hooks/useAuth';
 import { useActiveWorkout } from '../../src/Hooks/useActiveWorkout';
 import { useNotification } from '../../src/Hooks/useNotification';
 import { WorkoutService } from '../../src/Services/WorkoutService';
+import { WorkoutPlanService } from '../../src/Services/WorkoutPlanService';
+import { WorkoutTemplateService } from '../../src/Services/WorkoutTemplateService';
+import GetTodaysWorkoutResponse from '../../src/DataTransferObjects/Responses/WorkoutPlan/GetTodaysWorkoutResponse';
 import { Colors } from '../../src/Theme/colors';
 
 export default function HomeScreen() {
@@ -20,6 +23,28 @@ export default function HomeScreen() {
     const { showError } = useNotification();
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const [todaysWorkout, setTodaysWorkout] = useState<GetTodaysWorkoutResponse | null>(null);
+    const [startingScheduled, setStartingScheduled] = useState(false);
+
+    useEffect(() => {
+        if (!hasActiveWorkout) {
+            WorkoutPlanService.getTodaysWorkout().then(setTodaysWorkout);
+        }
+    }, [hasActiveWorkout]);
+
+    async function handleStartScheduledWorkout() {
+        if (!todaysWorkout?.template) return;
+        setStartingScheduled(true);
+        try {
+            const result = await WorkoutTemplateService.startWorkoutFromTemplate(todaysWorkout.template.id);
+            setActiveWorkout(result.workoutId);
+            router.push(`/workout/${result.workoutId}`);
+        } catch {
+            showError('Failed to start workout. Please try again.');
+        } finally {
+            setStartingScheduled(false);
+        }
+    }
 
     async function handleStartWorkout() {
         setLoading(true);
@@ -50,6 +75,38 @@ export default function HomeScreen() {
                 <Text style={styles.welcome}>
                     Welcome{user?.email ? `, ${user.email}` : ''}
                 </Text>
+
+                {!hasActiveWorkout && todaysWorkout?.template && (
+                    <View style={styles.todayCard}>
+                        <Text style={styles.todayLabel}>Today's Workout</Text>
+                        <Text style={styles.todayTemplateName}>{todaysWorkout.template.name}</Text>
+                        {todaysWorkout.template.exercises.slice(0, 3).map((e, i) => (
+                            <Text key={i} style={styles.todayExercise}>
+                                {e.exerciseInfo?.name ?? ''}
+                            </Text>
+                        ))}
+                        {todaysWorkout.template.exercises.length > 3 && (
+                            <Text style={styles.todayMore}>+{todaysWorkout.template.exercises.length - 3} more</Text>
+                        )}
+                        <Pressable
+                            style={[styles.primaryButton, startingScheduled && styles.buttonDisabled, { marginTop: 12 }]}
+                            onPress={handleStartScheduledWorkout}
+                            disabled={startingScheduled}
+                        >
+                            {startingScheduled
+                                ? <ActivityIndicator color="#fff" />
+                                : <Text style={styles.primaryButtonText}>▶  Start Today's Workout</Text>
+                            }
+                        </Pressable>
+                    </View>
+                )}
+
+                {!hasActiveWorkout && todaysWorkout?.note && !todaysWorkout?.template && (
+                    <View style={styles.restCard}>
+                        <Text style={styles.restLabel}>Today</Text>
+                        <Text style={styles.restNote}>{todaysWorkout.note}</Text>
+                    </View>
+                )}
 
                 {hasActiveWorkout ? (
                     <Pressable style={styles.primaryButton} onPress={handleContinueWorkout}>
@@ -117,5 +174,58 @@ const styles = StyleSheet.create({
     },
     buttonDisabled: {
         opacity: 0.6,
+    },
+    todayCard: {
+        backgroundColor: Colors.surface,
+        borderRadius: 14,
+        padding: 18,
+        width: '100%',
+        borderWidth: 1,
+        borderColor: Colors.primary,
+    },
+    todayLabel: {
+        color: Colors.primary,
+        fontSize: 12,
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        letterSpacing: 0.8,
+        marginBottom: 4,
+    },
+    todayTemplateName: {
+        color: Colors.text,
+        fontSize: 20,
+        fontWeight: '700',
+        marginBottom: 8,
+    },
+    todayExercise: {
+        color: Colors.textSecondary,
+        fontSize: 14,
+        lineHeight: 22,
+    },
+    todayMore: {
+        color: Colors.textSecondary,
+        fontSize: 13,
+        marginTop: 2,
+    },
+    restCard: {
+        backgroundColor: Colors.surface,
+        borderRadius: 14,
+        padding: 18,
+        width: '100%',
+        borderWidth: 1,
+        borderColor: Colors.border,
+        alignItems: 'center',
+    },
+    restLabel: {
+        color: Colors.textSecondary,
+        fontSize: 12,
+        fontWeight: '600',
+        textTransform: 'uppercase',
+        marginBottom: 4,
+    },
+    restNote: {
+        color: Colors.text,
+        fontSize: 18,
+        fontWeight: '600',
     },
 });
