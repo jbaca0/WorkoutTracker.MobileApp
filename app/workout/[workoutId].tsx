@@ -1,27 +1,27 @@
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    View,
-    Text,
-    Pressable,
-    StyleSheet,
-    ScrollView,
     ActivityIndicator,
-    Modal,
-    SafeAreaView,
     KeyboardAvoidingView,
+    Modal,
     Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { WorkoutService } from '../../src/Services/WorkoutService';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import AddExerciseModal from '../../src/Components/AddExerciseModal';
+import ExerciseComponent from '../../src/Components/ExerciseComponent';
 import Exercise from '../../src/Domain/Exercise';
 import Workout from '../../src/Domain/Workout';
-import ExerciseComponent from '../../src/Components/ExerciseComponent';
-import AddExerciseModal from '../../src/Components/AddExerciseModal';
 import { useActiveWorkout } from '../../src/Hooks/useActiveWorkout';
-import { useNotification } from '../../src/Hooks/useNotification';
-import { generateWorkoutTitle } from '../../src/Utilities/WorkoutTitleGenerator';
 import useDebounce from '../../src/Hooks/useDebounce';
+import { useNotification } from '../../src/Hooks/useNotification';
+import { WorkoutService } from '../../src/Services/WorkoutService';
 import { Colors } from '../../src/Theme/colors';
+import { generateWorkoutTitle } from '../../src/Utilities/WorkoutTitleGenerator';
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
