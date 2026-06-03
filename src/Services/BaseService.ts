@@ -6,29 +6,40 @@ export class BaseService {
 
     protected static serverUrl = process.env.EXPO_PUBLIC_SERVER_URL ?? 'http://localhost:5231';
 
-    static async refreshToken(): Promise<boolean> {
+    static async refreshToken(): Promise<'success' | 'invalid' | 'error'> {
         const refreshToken = getRefreshToken();
         if (!refreshToken) {
-            return false;
+            return 'invalid';
         }
 
-        const response = await fetch(`${this.serverUrl}/auth/refresh`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ refreshToken }),
-        });
+        let response: Response;
+        try {
+            response = await fetch(`${this.serverUrl}/auth/refresh`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ refreshToken }),
+            });
+        } catch {
+            // Network error - server unreachable, don't clear tokens
+            return 'error';
+        }
+
+        if (response.status === 401 || response.status === 403) {
+            clearTokens();
+            return 'invalid';
+        }
 
         if (!response.ok) {
-            clearTokens();
-            return false;
+            // Server error (5xx, etc.) - transient failure, don't clear tokens
+            return 'error';
         }
 
         const authResponse: AuthResponse = await response.json();
         setAccessToken(authResponse.accessToken);
         setRefreshToken(authResponse.refreshToken);
-        return true;
+        return 'success';
     }
 
     protected static async fetchFromServer<T>(endpoint: string, body?: unknown, method?: string): Promise<T> {
@@ -53,12 +64,15 @@ export class BaseService {
         let response = await makeRequest(getAccessToken());
 
         if (response.status === 401) {
-            const refreshed = await this.refreshToken();
-            if (refreshed) {
+            const result = await this.refreshToken();
+            if (result === 'success') {
                 response = await makeRequest(getAccessToken());
-            } else {
+            } else if (result === 'invalid') {
                 triggerSessionExpired();
                 throw new Error('Session expired. Please log in again.');
+            } else {
+                // Transient error - server unavailable, don't log the user out
+                throw new Error('Unable to reach server. Please try again.');
             }
         }
 

@@ -45,13 +45,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (!tokensLoaded) return;
         if (!user) return;
         if (isAccessTokenExpired()) {
-            BaseService.refreshToken().then(refreshed => {
-                if (!refreshed) {
+            BaseService.refreshToken().then(result => {
+                if (result === 'invalid') {
                     clearTokens();
                     clearActiveWorkout();
                     setUser(null);
                     router.replace('/');
                 }
+                // 'error' means the server is temporarily unreachable — stay logged in
             });
         }
     }, [authLoaded, tokensLoaded]);
