@@ -6,9 +6,9 @@ export class BaseService {
 
     protected static serverUrl = process.env.EXPO_PUBLIC_SERVER_URL ?? 'http://localhost:5231';
 
-    private static refreshPromise: Promise<'success' | 'invalid' | 'error'> | null = null;
+    private static refreshPromise: Promise<boolean> | null = null;
 
-    static async refreshToken(): Promise<'success' | 'invalid' | 'error'> {
+    static async refreshToken(): Promise<boolean> {
         if (this.refreshPromise !== null) {
             return this.refreshPromise;
         }
@@ -20,10 +20,10 @@ export class BaseService {
         return this.refreshPromise;
     }
 
-    private static async doRefresh(): Promise<'success' | 'invalid' | 'error'> {
+    private static async doRefresh(): Promise<boolean> {
         const refreshToken = getRefreshToken();
         if (!refreshToken) {
-            return 'invalid';
+            return false;
         }
 
         let response: Response;
@@ -36,22 +36,18 @@ export class BaseService {
                 body: JSON.stringify({ refreshToken }),
             });
         } catch {
-            return 'error';
-        }
-
-        if (response.status === 401 || response.status === 403) {
-            clearTokens();
-            return 'invalid';
+            return false;
         }
 
         if (!response.ok) {
-            return 'error';
+            clearTokens();
+            return false;
         }
 
         const authResponse: AuthResponse = await response.json();
         setAccessToken(authResponse.accessToken);
         setRefreshToken(authResponse.refreshToken);
-        return 'success';
+        return true;
     }
 
     protected static async fetchFromServer<T>(endpoint: string, body?: unknown, method?: string): Promise<T> {
@@ -76,14 +72,12 @@ export class BaseService {
         let response = await makeRequest(getAccessToken());
 
         if (response.status === 401) {
-            const result = await this.refreshToken();
-            if (result === 'success') {
+            const refreshed = await this.refreshToken();
+            if (refreshed) {
                 response = await makeRequest(getAccessToken());
-            } else if (result === 'invalid') {
+            } else {
                 triggerSessionExpired();
                 throw new Error('Session expired. Please log in again.');
-            } else {
-                throw new Error('Unable to reach server. Please try again.');
             }
         }
 
