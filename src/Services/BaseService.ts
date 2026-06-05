@@ -6,7 +6,21 @@ export class BaseService {
 
     protected static serverUrl = process.env.EXPO_PUBLIC_SERVER_URL ?? 'http://localhost:5231';
 
+    private static refreshPromise: Promise<'success' | 'invalid' | 'error'> | null = null;
+
     static async refreshToken(): Promise<'success' | 'invalid' | 'error'> {
+        if (this.refreshPromise !== null) {
+            return this.refreshPromise;
+        }
+
+        this.refreshPromise = this.doRefresh().finally(() => {
+            this.refreshPromise = null;
+        });
+
+        return this.refreshPromise;
+    }
+
+    private static async doRefresh(): Promise<'success' | 'invalid' | 'error'> {
         const refreshToken = getRefreshToken();
         if (!refreshToken) {
             return 'invalid';
@@ -22,7 +36,6 @@ export class BaseService {
                 body: JSON.stringify({ refreshToken }),
             });
         } catch {
-            // Network error - server unreachable, don't clear tokens
             return 'error';
         }
 
@@ -32,7 +45,6 @@ export class BaseService {
         }
 
         if (!response.ok) {
-            // Server error (5xx, etc.) - transient failure, don't clear tokens
             return 'error';
         }
 
@@ -71,7 +83,6 @@ export class BaseService {
                 triggerSessionExpired();
                 throw new Error('Session expired. Please log in again.');
             } else {
-                // Transient error - server unavailable, don't log the user out
                 throw new Error('Unable to reach server. Please try again.');
             }
         }
