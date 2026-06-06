@@ -169,42 +169,42 @@ export default function WorkoutScreen() {
                             onChange={onExerciseChange}
                         />
                     ))}
+
+                    <View style={styles.actions}>
+                        <Pressable
+                            style={[styles.button, styles.buttonPrimary, addingExercises && styles.buttonDisabled]}
+                            onPress={() => setShowAddExercise(true)}
+                            disabled={addingExercises}
+                        >
+                            {addingExercises
+                                ? <ActivityIndicator color="#fff" size="small" />
+                                : <Text style={styles.buttonText}>Add Exercise</Text>
+                            }
+                        </Pressable>
+
+                        <Pressable
+                            style={[styles.button, styles.buttonSecondary, (exercises.length === 0 || saving) && styles.buttonDisabled]}
+                            onPress={() => setShowConfirmComplete(true)}
+                            disabled={exercises.length === 0 || saving}
+                        >
+                            {saving
+                                ? <ActivityIndicator color="#fff" size="small" />
+                                : <Text style={styles.buttonText}>Complete Workout</Text>
+                            }
+                        </Pressable>
+
+                        <Pressable
+                            style={[styles.button, styles.buttonOutlineError, (saving || cancelling) && styles.buttonDisabled]}
+                            onPress={() => setShowConfirmCancel(true)}
+                            disabled={saving || cancelling}
+                        >
+                            {cancelling
+                                ? <ActivityIndicator color={Colors.error} size="small" />
+                                : <Text style={styles.buttonOutlineErrorText}>Cancel Workout</Text>
+                            }
+                        </Pressable>
+                    </View>
                 </ScrollView>
-
-                <View style={styles.actions}>
-                    <Pressable
-                        style={[styles.button, styles.buttonPrimary, addingExercises && styles.buttonDisabled]}
-                        onPress={() => setShowAddExercise(true)}
-                        disabled={addingExercises}
-                    >
-                        {addingExercises
-                            ? <ActivityIndicator color="#fff" size="small" />
-                            : <Text style={styles.buttonText}>Add Exercise</Text>
-                        }
-                    </Pressable>
-
-                    <Pressable
-                        style={[styles.button, styles.buttonSecondary, (exercises.length === 0 || saving) && styles.buttonDisabled]}
-                        onPress={() => setShowConfirmComplete(true)}
-                        disabled={exercises.length === 0 || saving}
-                    >
-                        {saving
-                            ? <ActivityIndicator color="#fff" size="small" />
-                            : <Text style={styles.buttonText}>Complete Workout</Text>
-                        }
-                    </Pressable>
-
-                    <Pressable
-                        style={[styles.button, styles.buttonOutlineError, (saving || cancelling) && styles.buttonDisabled]}
-                        onPress={() => setShowConfirmCancel(true)}
-                        disabled={saving || cancelling}
-                    >
-                        {cancelling
-                            ? <ActivityIndicator color={Colors.error} size="small" />
-                            : <Text style={styles.buttonOutlineErrorText}>Cancel Workout</Text>
-                        }
-                    </Pressable>
-                </View>
             </KeyboardAvoidingView>
 
             <AddExerciseModal
@@ -307,11 +307,12 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     exerciseListContent: {
-        paddingBottom: 8,
+        paddingBottom: 16,
     },
     actions: {
         padding: 12,
         gap: 10,
+        marginTop: 8,
         borderTopWidth: 1,
         borderTopColor: Colors.border,
     },
