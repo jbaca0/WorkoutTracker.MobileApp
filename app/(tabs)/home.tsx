@@ -5,8 +5,8 @@ import {
     Pressable,
     StyleSheet,
     ActivityIndicator,
-    SafeAreaView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../src/Hooks/useAuth';
 import { useActiveWorkout } from '../../src/Hooks/useActiveWorkout';

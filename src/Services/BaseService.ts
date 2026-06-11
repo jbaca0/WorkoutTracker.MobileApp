@@ -6,19 +6,38 @@ export class BaseService {
 
     protected static serverUrl = process.env.EXPO_PUBLIC_SERVER_URL ?? 'http://localhost:5231';
 
+    private static refreshPromise: Promise<boolean> | null = null;
+
     static async refreshToken(): Promise<boolean> {
+        if (this.refreshPromise !== null) {
+            return this.refreshPromise;
+        }
+
+        this.refreshPromise = this.doRefresh().finally(() => {
+            this.refreshPromise = null;
+        });
+
+        return this.refreshPromise;
+    }
+
+    private static async doRefresh(): Promise<boolean> {
         const refreshToken = getRefreshToken();
         if (!refreshToken) {
             return false;
         }
 
-        const response = await fetch(`${this.serverUrl}/auth/refresh`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ refreshToken }),
-        });
+        let response: Response;
+        try {
+            response = await fetch(`${this.serverUrl}/auth/refresh`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ refreshToken }),
+            });
+        } catch {
+            return false;
+        }
 
         if (!response.ok) {
             clearTokens();
