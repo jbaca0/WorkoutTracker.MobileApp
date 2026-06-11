@@ -28,7 +28,10 @@ class Exercise {
         return new Exercise({
             ExerciseInfoId: exerciseData.exerciseInfoId,
             ExerciseInfo: exerciseData.exerciseInfo && ExerciseInfo.FromData(exerciseData.exerciseInfo),
-            Sets: exerciseData.sets?.map(s => new Set({ Reps: s.reps, Weight: s.weight })) ?? []
+            Sets: exerciseData.sets
+                ?.slice()
+                .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+                .map(s => new Set({ Reps: s.reps, Weight: s.weight, Order: s.order })) ?? []
         })
     }
 
