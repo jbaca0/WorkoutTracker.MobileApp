@@ -61,6 +61,14 @@ const ExerciseComponent: React.FC<ExerciseProps> = ({ exercise, onChange }) => {
                 </Pressable>
             </View>
 
+            {exercise.GoalRecommendation && (
+                <View style={styles.goalRow}>
+                    <Text style={styles.goalText}>
+                        🎯 Goal target: {exercise.GoalRecommendation.Weight} lbs × {exercise.GoalRecommendation.Reps} reps
+                    </Text>
+                </View>
+            )}
+
             {exercise.Sets.length > 0 ? (
                 <View style={styles.table}>
                     {/* Header row */}
@@ -234,6 +242,18 @@ const styles = StyleSheet.create({
         fontSize: 13,
         textAlign: 'center',
         paddingVertical: 8,
+    },
+    goalRow: {
+        backgroundColor: 'rgba(38,166,154,0.1)',
+        borderRadius: 6,
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        marginBottom: 10,
+    },
+    goalText: {
+        color: Colors.primary,
+        fontSize: 13,
+        fontWeight: '600',
     },
 });
 

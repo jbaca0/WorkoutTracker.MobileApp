@@ -14,18 +14,30 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { useActiveWorkout } from '../../src/Hooks/useActiveWorkout';
 import { useNotification } from '../../src/Hooks/useNotification';
 import { WorkoutPlanService } from '../../src/Services/WorkoutPlanService';
+import { ExerciseGoalService } from '../../src/Services/ExerciseGoalService';
 import WorkoutPlan from '../../src/Domain/WorkoutPlan';
+import ExerciseGoal from '../../src/Domain/ExerciseGoal';
+import AddGoalModal from '../../src/Components/AddGoalModal';
 import { Colors } from '../../src/Theme/colors';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 type ViewMode = 'list' | 'calendar';
+type MainTab = 'plans' | 'goals';
+
+function epley1RM(weight: number, reps: number): number {
+    return weight * (1 + reps / 30);
+}
 
 export default function PlansScreen() {
     const [plans, setPlans] = useState<WorkoutPlan[]>([]);
+    const [goals, setGoals] = useState<ExerciseGoal[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadingGoals, setLoadingGoals] = useState(true);
+    const [mainTab, setMainTab] = useState<MainTab>('plans');
     const [view, setView] = useState<ViewMode>('list');
     const [selectedDayDetail, setSelectedDayDetail] = useState<{ label: string; exercises: string[] } | null>(null);
+    const [showAddGoal, setShowAddGoal] = useState(false);
     const { showError } = useNotification();
     const { hasActiveWorkout, activeWorkoutId } = useActiveWorkout();
     const router = useRouter();
@@ -39,10 +51,35 @@ export default function PlansScreen() {
             .finally(() => setLoading(false));
     }, []);
 
+    const loadGoals = useCallback(() => {
+        ExerciseGoalService.getGoals()
+            .then(setGoals)
+            .catch(() => showError('Failed to load goals'))
+            .finally(() => setLoadingGoals(false));
+    }, []);
+
     useFocusEffect(useCallback(() => {
         setLoading(true);
+        setLoadingGoals(true);
         loadPlans();
+        loadGoals();
     }, []));
+
+    async function handleDeleteGoal(goal: ExerciseGoal) {
+        Alert.alert('Delete Goal', `Delete goal for "${goal.ExerciseInfo.Name}"?`, [
+            { text: 'Cancel', style: 'cancel' },
+            {
+                text: 'Delete', style: 'destructive', onPress: async () => {
+                    try {
+                        await ExerciseGoalService.deleteGoal(goal.Id);
+                        setGoals(prev => prev.filter(g => g.Id !== goal.Id));
+                    } catch {
+                        showError('Failed to delete goal');
+                    }
+                }
+            }
+        ]);
+    }
 
     async function handleActivate(plan: WorkoutPlan) {
         try {
@@ -108,7 +145,7 @@ export default function PlansScreen() {
         });
     }
 
-    if (loading) {
+    if ((mainTab === 'plans' && loading) || (mainTab === 'goals' && loadingGoals)) {
         return (
             <SafeAreaView style={styles.container}>
                 <ActivityIndicator style={{ flex: 1 }} color={Colors.primary} size="large" />
@@ -119,8 +156,36 @@ export default function PlansScreen() {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.title}>Plans</Text>
+                <Text style={styles.title}>{mainTab === 'plans' ? 'Plans' : 'Goals'}</Text>
                 <View style={styles.headerRight}>
+                    <View style={styles.toggle}>
+                        <Pressable
+                            style={[styles.toggleBtn, mainTab === 'plans' && styles.toggleBtnActive]}
+                            onPress={() => setMainTab('plans')}
+                        >
+                            <Text style={[styles.toggleText, mainTab === 'plans' && styles.toggleTextActive]}>Plans</Text>
+                        </Pressable>
+                        <Pressable
+                            style={[styles.toggleBtn, mainTab === 'goals' && styles.toggleBtnActive]}
+                            onPress={() => setMainTab('goals')}
+                        >
+                            <Text style={[styles.toggleText, mainTab === 'goals' && styles.toggleTextActive]}>Goals</Text>
+                        </Pressable>
+                    </View>
+                    {mainTab === 'plans' ? (
+                        <Pressable style={styles.addButton} onPress={() => router.push('/plan/new' as any)}>
+                            <Text style={styles.addButtonText}>+ New</Text>
+                        </Pressable>
+                    ) : (
+                        <Pressable style={styles.addButton} onPress={() => setShowAddGoal(true)}>
+                            <Text style={styles.addButtonText}>+ Add Goal</Text>
+                        </Pressable>
+                    )}
+                </View>
+            </View>
+
+            {mainTab === 'plans' && (
+                <View style={styles.subToggle}>
                     <View style={styles.toggle}>
                         <Pressable
                             style={[styles.toggleBtn, view === 'list' && styles.toggleBtnActive]}
@@ -135,13 +200,58 @@ export default function PlansScreen() {
                             <Text style={[styles.toggleText, view === 'calendar' && styles.toggleTextActive]}>Calendar</Text>
                         </Pressable>
                     </View>
-                    <Pressable style={styles.addButton} onPress={() => router.push('/plan/new' as any)}>
-                        <Text style={styles.addButtonText}>+ New</Text>
-                    </Pressable>
                 </View>
-            </View>
+            )}
 
-            {view === 'list' ? (
+            {mainTab === 'goals' ? (
+                goals.length === 0 ? (
+                    <View style={styles.emptyState}>
+                        <Text style={styles.emptyText}>No goals yet.</Text>
+                        <Text style={styles.emptySubtext}>Add a goal to track your progress toward a target lift.</Text>
+                    </View>
+                ) : (
+                    <FlatList
+                        data={goals}
+                        keyExtractor={item => item.Id}
+                        contentContainerStyle={styles.list}
+                        renderItem={({ item }) => {
+                            const start1RM = epley1RM(item.StartWeight, item.StartReps);
+                            const target1RM = epley1RM(item.TargetWeight, item.TargetReps);
+                            const recommendation = item.GoalRecommendation;
+                            const current1RM = recommendation
+                                ? epley1RM(recommendation.Weight, recommendation.Reps)
+                                : start1RM;
+                            const progress = target1RM > start1RM
+                                ? Math.min(Math.max((current1RM - start1RM) / (target1RM - start1RM), 0), 1)
+                                : 1;
+
+                            return (
+                                <View style={styles.planCard}>
+                                    <View style={styles.planCardTop}>
+                                        <Text style={styles.planName}>{item.ExerciseInfo.Name}</Text>
+                                    </View>
+                                    <Text style={styles.planDaysSummary}>
+                                        Target: {item.TargetWeight} lbs × {item.TargetReps} rep{item.TargetReps !== 1 ? 's' : ''} by {item.GoalDate.toISOString().slice(0, 10)}
+                                    </Text>
+                                    {recommendation && (
+                                        <Text style={styles.planDaysSummary}>
+                                            Today's recommendation: {recommendation.Weight} lbs × {recommendation.Reps} reps
+                                        </Text>
+                                    )}
+                                    <View style={styles.progressBarTrack}>
+                                        <View style={[styles.progressBarFill, { width: `${Math.round(progress * 100)}%` }]} />
+                                    </View>
+                                    <View style={styles.planActions}>
+                                        <Pressable style={[styles.actionBtn, styles.actionBtnDanger]} onPress={() => handleDeleteGoal(item)}>
+                                            <Text style={[styles.actionBtnText, styles.actionBtnDangerText]}>Delete</Text>
+                                        </Pressable>
+                                    </View>
+                                </View>
+                            );
+                        }}
+                    />
+                )
+            ) : view === 'list' ? (
                 plans.length === 0 ? (
                     <View style={styles.emptyState}>
                         <Text style={styles.emptyText}>No plans yet.</Text>
@@ -235,6 +345,16 @@ export default function PlansScreen() {
                     <Text style={styles.fabText}>🏋️</Text>
                 </Pressable>
             )}
+
+            <AddGoalModal
+                visible={showAddGoal}
+                plans={plans}
+                onClose={() => setShowAddGoal(false)}
+                onGoalAdded={async (goal) => {
+                    setGoals(prev => [...prev, goal]);
+                    setShowAddGoal(false);
+                }}
+            />
         </SafeAreaView>
     );
 }
@@ -269,6 +389,24 @@ const styles = StyleSheet.create({
         paddingVertical: 6,
     },
     addButtonText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+    subToggle: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        paddingHorizontal: 16,
+        paddingTop: 12,
+    },
+    progressBarTrack: {
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: Colors.surfaceRaised,
+        overflow: 'hidden',
+        marginBottom: 12,
+    },
+    progressBarFill: {
+        height: '100%',
+        backgroundColor: Colors.primary,
+        borderRadius: 4,
+    },
     list: { paddingBottom: 80 },
     planCard: {
         backgroundColor: Colors.surface,

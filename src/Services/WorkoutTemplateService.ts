@@ -2,7 +2,7 @@ import WorkoutTemplate from '../Domain/WorkoutTemplate';
 import Exercise from '../Domain/Exercise';
 import Set from '../Domain/Set';
 import UserExerciseInfo from '../Domain/UserExerciseInfo';
-import CreateTemplateRequest from '../DataTransferObjects/Requests/WorkoutTemplate/CreateTemplateRequest';
+import CreateTemplateRequest, { WorkoutTemplateExerciseRequest } from '../DataTransferObjects/Requests/WorkoutTemplate/CreateTemplateRequest';
 import UpdateTemplateRequest from '../DataTransferObjects/Requests/WorkoutTemplate/UpdateTemplateRequest';
 import GetTemplatesResponse from '../DataTransferObjects/Responses/WorkoutTemplate/GetTemplatesResponse';
 import StartWorkoutFromTemplateResponse from '../DataTransferObjects/Responses/WorkoutTemplate/StartWorkoutFromTemplateResponse';
@@ -19,13 +19,13 @@ export class WorkoutTemplateService extends BaseService {
         return response.templates.map(WorkoutTemplate.FromData);
     }
 
-    public static async addTemplate(name: string, exerciseInfoIds: string[]): Promise<string> {
-        const request: CreateTemplateRequest = { name, exerciseInfoIds };
+    public static async addTemplate(name: string, exercises: WorkoutTemplateExerciseRequest[]): Promise<string> {
+        const request: CreateTemplateRequest = { name, exercises };
         return await this.fetchFromServer<string>('/addTemplate', request);
     }
 
-    public static async updateTemplate(templateId: string, name: string, exerciseInfoIds: string[]): Promise<void> {
-        const request: UpdateTemplateRequest = { templateId, name, exerciseInfoIds };
+    public static async updateTemplate(templateId: string, name: string, exercises: WorkoutTemplateExerciseRequest[]): Promise<void> {
+        const request: UpdateTemplateRequest = { templateId, name, exercises };
         await this.fetchFromServer<void>('/updateTemplate', request, 'PUT');
     }
 
@@ -44,7 +44,8 @@ export class WorkoutTemplateService extends BaseService {
             .map(e => new Exercise({
                 ExerciseInfo: e.ExerciseInfo,
                 PreviousExercise: e.LatestExercise,
-                Sets: e.LatestExercise?.Sets.map(() => new Set()) ?? []
+                Sets: e.LatestExercise?.Sets.map(() => new Set()) ?? [],
+                GoalRecommendation: e.GoalRecommendation
             }));
 
         return { workoutId: response.workoutId, exercises };

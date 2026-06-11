@@ -16,10 +16,17 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useNotification } from '../../src/Hooks/useNotification';
 import { WorkoutPlanService } from '../../src/Services/WorkoutPlanService';
 import { WorkoutTemplateService } from '../../src/Services/WorkoutTemplateService';
+import { ExerciseInfoService } from '../../src/Services/ExerciseInfoService';
 import WorkoutTemplate from '../../src/Domain/WorkoutTemplate';
+import ExerciseInfo from '../../src/Domain/ExerciseInfo';
 import { WorkoutPlanDayRequest } from '../../src/DataTransferObjects/Requests/WorkoutPlan/AddWorkoutPlanRequest';
+import { WorkoutTemplateExerciseRequest } from '../../src/DataTransferObjects/Requests/WorkoutTemplate/CreateTemplateRequest';
 import { Colors } from '../../src/Theme/colors';
 import AddExerciseModal from '../../src/Components/AddExerciseModal';
+
+function toDateInputString(date: Date): string {
+    return date.toISOString().slice(0, 10);
+}
 
 const ORDERED_DAYS = [1, 2, 3, 4, 5, 6, 0]; // Mon–Sun
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -39,8 +46,11 @@ export default function PlanEditorScreen() {
     const { showError } = useNotification();
 
     const [name, setName] = useState('');
+    const [startDate, setStartDate] = useState(toDateInputString(new Date()));
+    const [endDate, setEndDate] = useState('');
     const [days, setDays] = useState<DayAssignment[]>([]);
     const [templates, setTemplates] = useState<WorkoutTemplate[]>([]);
+    const [exerciseInfos, setExerciseInfos] = useState<ExerciseInfo[]>([]);
     const [loading, setLoading] = useState(!isNew);
     const [saving, setSaving] = useState(false);
 
@@ -50,17 +60,20 @@ export default function PlanEditorScreen() {
     const [showCreateTemplate, setShowCreateTemplate] = useState(false);
     const [newTemplateName, setNewTemplateName] = useState('');
     const [showExercisePicker, setShowExercisePicker] = useState(false);
-    const [pendingExerciseIds, setPendingExerciseIds] = useState<string[]>([]);
+    const [pendingExercises, setPendingExercises] = useState<WorkoutTemplateExerciseRequest[]>([]);
     const [creatingTemplate, setCreatingTemplate] = useState(false);
 
     useEffect(() => {
         WorkoutTemplateService.getTemplates().then(setTemplates).catch(() => {});
+        ExerciseInfoService.getExerciseInfos().then(setExerciseInfos).catch(() => {});
 
         if (!isNew) {
             WorkoutPlanService.getWorkoutPlans().then(plans => {
                 const plan = plans.find(p => p.Id === planId);
                 if (plan) {
                     setName(plan.Name);
+                    setStartDate(toDateInputString(plan.StartDate));
+                    setEndDate(plan.EndDate ? toDateInputString(plan.EndDate) : '');
                     setDays(plan.Days.map(d => ({
                         dayOfWeek: d.DayOfWeek,
                         workoutTemplateId: d.WorkoutTemplateId,
@@ -123,6 +136,17 @@ export default function PlanEditorScreen() {
         setShowDayEditor(false);
     }
 
+    function getExerciseName(exerciseInfoId: string): string {
+        return exerciseInfos.find(ei => ei.Id === exerciseInfoId)?.Name || 'Exercise';
+    }
+
+    function updatePendingTargetReps(exerciseInfoId: string, value: string) {
+        const targetReps = parseInt(value) || 0;
+        setPendingExercises(prev => prev.map(e =>
+            e.exerciseInfoId === exerciseInfoId ? { ...e, targetReps } : e
+        ));
+    }
+
     async function handleCreateTemplate() {
         if (!newTemplateName.trim()) {
             Alert.alert('Name required', 'Please enter a template name.');
@@ -130,7 +154,7 @@ export default function PlanEditorScreen() {
         }
         setCreatingTemplate(true);
         try {
-            const templateId = await WorkoutTemplateService.addTemplate(newTemplateName.trim(), pendingExerciseIds);
+            const templateId = await WorkoutTemplateService.addTemplate(newTemplateName.trim(), pendingExercises);
             const updated = await WorkoutTemplateService.getTemplates();
             setTemplates(updated);
             const created = updated.find(t => t.Id === templateId);
@@ -139,7 +163,7 @@ export default function PlanEditorScreen() {
             }
             setShowCreateTemplate(false);
             setNewTemplateName('');
-            setPendingExerciseIds([]);
+            setPendingExercises([]);
         } catch {
             showError('Failed to create template');
         } finally {
@@ -152,6 +176,10 @@ export default function PlanEditorScreen() {
             Alert.alert('Name required', 'Please enter a plan name.');
             return;
         }
+        if (!startDate.trim()) {
+            Alert.alert('Start date required', 'Please enter a start date.');
+            return;
+        }
         setSaving(true);
         const dayRequests: WorkoutPlanDayRequest[] = days.map(d => ({
             dayOfWeek: d.dayOfWeek,
@@ -160,9 +188,9 @@ export default function PlanEditorScreen() {
         }));
         try {
             if (isNew) {
-                await WorkoutPlanService.addWorkoutPlan(name.trim(), dayRequests);
+                await WorkoutPlanService.addWorkoutPlan(name.trim(), startDate.trim(), endDate.trim() || undefined, dayRequests);
             } else {
-                await WorkoutPlanService.updateWorkoutPlan(planId, name.trim(), dayRequests);
+                await WorkoutPlanService.updateWorkoutPlan(planId, name.trim(), startDate.trim(), endDate.trim() || undefined, dayRequests);
             }
             router.back();
         } catch {
@@ -204,6 +232,24 @@ export default function PlanEditorScreen() {
                     value={name}
                     onChangeText={setName}
                     placeholder="e.g. Push/Pull/Legs"
+                    placeholderTextColor={Colors.textSecondary}
+                />
+
+                <Text style={styles.sectionLabel}>Start Date</Text>
+                <TextInput
+                    style={styles.nameInput}
+                    value={startDate}
+                    onChangeText={setStartDate}
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor={Colors.textSecondary}
+                />
+
+                <Text style={styles.sectionLabel}>End Date (optional)</Text>
+                <TextInput
+                    style={styles.nameInput}
+                    value={endDate}
+                    onChangeText={setEndDate}
+                    placeholder="YYYY-MM-DD"
                     placeholderTextColor={Colors.textSecondary}
                 />
 
@@ -314,7 +360,7 @@ export default function PlanEditorScreen() {
             >
                 <SafeAreaView style={styles.container}>
                     <View style={styles.header}>
-                        <Pressable onPress={() => { setShowCreateTemplate(false); setNewTemplateName(''); setPendingExerciseIds([]); }}>
+                        <Pressable onPress={() => { setShowCreateTemplate(false); setNewTemplateName(''); setPendingExercises([]); }}>
                             <Text style={styles.backText}>Cancel</Text>
                         </Pressable>
                         <Text style={styles.headerTitle}>New Template</Text>
@@ -337,10 +383,25 @@ export default function PlanEditorScreen() {
                         />
 
                         <Text style={styles.sectionLabel}>Exercises</Text>
-                        {pendingExerciseIds.length === 0 ? (
+                        {pendingExercises.length === 0 ? (
                             <Text style={styles.noTemplatesText}>No exercises added yet.</Text>
                         ) : (
-                            <Text style={styles.exerciseCount}>{pendingExerciseIds.length} exercise{pendingExerciseIds.length !== 1 ? 's' : ''} selected</Text>
+                            pendingExercises.map(pe => (
+                                <View key={pe.exerciseInfoId} style={styles.pendingExerciseRow}>
+                                    <Text style={styles.pendingExerciseName} numberOfLines={1}>
+                                        {getExerciseName(pe.exerciseInfoId)}
+                                    </Text>
+                                    <Text style={styles.targetRepsLabel}>Target reps</Text>
+                                    <TextInput
+                                        style={styles.targetRepsInput}
+                                        value={pe.targetReps ? String(pe.targetReps) : ''}
+                                        onChangeText={v => updatePendingTargetReps(pe.exerciseInfoId, v)}
+                                        keyboardType="numeric"
+                                        placeholder="0"
+                                        placeholderTextColor={Colors.textSecondary}
+                                    />
+                                </View>
+                            ))
                         )}
 
                         <Pressable style={styles.createTemplateBtn} onPress={() => setShowExercisePicker(true)}>
@@ -354,7 +415,13 @@ export default function PlanEditorScreen() {
                 visible={showExercisePicker}
                 onClose={() => setShowExercisePicker(false)}
                 onExercisesAdded={async (ids) => {
-                    setPendingExerciseIds(prev => [...new Set([...prev, ...ids])]);
+                    setPendingExercises(prev => {
+                        const existingIds = new Set(prev.map(e => e.exerciseInfoId));
+                        const additions = ids
+                            .filter(id => !existingIds.has(id))
+                            .map(id => ({ exerciseInfoId: id, targetReps: 0 }));
+                        return [...prev, ...additions];
+                    });
                     setShowExercisePicker(false);
                 }}
             />
@@ -465,4 +532,25 @@ const styles = StyleSheet.create({
     clearAllBtnText: { color: Colors.error, fontSize: 15 },
     noTemplatesText: { color: Colors.textSecondary, fontSize: 14, marginBottom: 8 },
     exerciseCount: { color: Colors.text, fontSize: 15, marginBottom: 8 },
+    pendingExerciseRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.border,
+    },
+    pendingExerciseName: { color: Colors.text, fontSize: 14, flex: 1, marginRight: 8 },
+    targetRepsLabel: { color: Colors.textSecondary, fontSize: 12, marginRight: 8 },
+    targetRepsInput: {
+        backgroundColor: Colors.inputBackground,
+        color: Colors.text,
+        borderRadius: 6,
+        paddingVertical: 6,
+        paddingHorizontal: 8,
+        textAlign: 'center',
+        fontSize: 14,
+        borderWidth: 1,
+        borderColor: Colors.border,
+        width: 56,
+    },
 });

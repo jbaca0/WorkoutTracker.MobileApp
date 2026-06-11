@@ -5,6 +5,7 @@ class WorkoutTemplateExercise {
     exerciseInfoId!: string;
     exerciseInfo?: ExerciseInfo;
     order!: number;
+    targetReps!: number;
 }
 
 export default WorkoutTemplateExercise;

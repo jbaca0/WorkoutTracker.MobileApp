@@ -6,12 +6,14 @@ class WorkoutTemplateExercise {
     public ExerciseInfoId: string;
     public ExerciseInfo?: ExerciseInfo;
     public Order: number;
+    public TargetReps: number;
 
     constructor(data?: Partial<WorkoutTemplateExercise>) {
         this.Id = data?.Id || '';
         this.ExerciseInfoId = data?.ExerciseInfoId || '';
         this.ExerciseInfo = data?.ExerciseInfo;
         this.Order = data?.Order || 0;
+        this.TargetReps = data?.TargetReps || 0;
     }
 
     public static FromData(data: WorkoutTemplateExerciseData): WorkoutTemplateExercise {
@@ -19,7 +21,8 @@ class WorkoutTemplateExercise {
             Id: data.id,
             ExerciseInfoId: data.exerciseInfoId,
             ExerciseInfo: data.exerciseInfo ? ExerciseInfo.FromData(data.exerciseInfo) : undefined,
-            Order: data.order
+            Order: data.order,
+            TargetReps: data.targetReps
         });
     }
 
@@ -28,7 +31,8 @@ class WorkoutTemplateExercise {
             id: this.Id,
             exerciseInfoId: this.ExerciseInfoId,
             exerciseInfo: this.ExerciseInfo?.ToData(),
-            order: this.Order
+            order: this.Order,
+            targetReps: this.TargetReps
         };
     }
 }

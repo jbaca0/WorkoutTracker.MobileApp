@@ -6,6 +6,8 @@ interface WorkoutPlanDayRequest {
 
 interface AddWorkoutPlanRequest {
     name: string;
+    startDate: string;
+    endDate?: string;
     days: WorkoutPlanDayRequest[];
 }
 

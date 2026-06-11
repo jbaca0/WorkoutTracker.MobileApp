@@ -10,12 +10,12 @@ export class WorkoutPlanService extends BaseService {
         return response.plans.map(WorkoutPlan.FromData);
     }
 
-    public static async addWorkoutPlan(name: string, days: WorkoutPlanDayRequest[]): Promise<string> {
-        return await this.fetchFromServer<string>('/addWorkoutPlan', { name, days });
+    public static async addWorkoutPlan(name: string, startDate: string, endDate: string | undefined, days: WorkoutPlanDayRequest[]): Promise<string> {
+        return await this.fetchFromServer<string>('/addWorkoutPlan', { name, startDate, endDate, days });
     }
 
-    public static async updateWorkoutPlan(planId: string, name: string, days: WorkoutPlanDayRequest[]): Promise<void> {
-        await this.fetchFromServer<void>('/updateWorkoutPlan', { planId, name, days }, 'PUT');
+    public static async updateWorkoutPlan(planId: string, name: string, startDate: string, endDate: string | undefined, days: WorkoutPlanDayRequest[]): Promise<void> {
+        await this.fetchFromServer<void>('/updateWorkoutPlan', { planId, name, startDate, endDate, days }, 'PUT');
     }
 
     public static async deleteWorkoutPlan(planId: string): Promise<void> {

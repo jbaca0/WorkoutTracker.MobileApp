@@ -11,6 +11,7 @@ class Exercise {
     public ExerciseInfo?: ExerciseInfo;
     public PreviousExercise?: Exercise;
     public Sets: Set[];
+    public GoalRecommendation?: { Weight: number; Reps: number };
 
     constructor(data?: Partial<Exercise>) {
         this.Id = data?.Id;
@@ -18,6 +19,7 @@ class Exercise {
         this.ExerciseInfo = data?.ExerciseInfo;
         this.PreviousExercise = data?.PreviousExercise;
         this.Sets = data?.Sets || [];
+        this.GoalRecommendation = data?.GoalRecommendation;
 
         const id = data?.ExerciseInfoId || data?.ExerciseInfo?.Id;
         if (!id) throw new Error("Unable to resolve ExerciseInfoId when constructing Exercise");
@@ -31,7 +33,10 @@ class Exercise {
             Sets: exerciseData.sets
                 ?.slice()
                 .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-                .map(s => new Set({ Reps: s.reps, Weight: s.weight, Order: s.order })) ?? []
+                .map(s => new Set({ Reps: s.reps, Weight: s.weight, Order: s.order })) ?? [],
+            GoalRecommendation: exerciseData.goalRecommendation
+                ? { Weight: exerciseData.goalRecommendation.weight, Reps: exerciseData.goalRecommendation.reps }
+                : undefined
         })
     }
 
@@ -44,7 +49,10 @@ class Exercise {
                 reps: set.Reps,
                 weight: set.Weight,
                 completed: set.Completed
-            }))
+            })),
+            goalRecommendation: this.GoalRecommendation
+                ? { weight: this.GoalRecommendation.Weight, reps: this.GoalRecommendation.Reps }
+                : undefined
         };
     }
 }
