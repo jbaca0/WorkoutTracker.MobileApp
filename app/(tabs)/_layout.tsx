@@ -1,5 +1,7 @@
-import { Text } from 'react-native';
+import { BottomTabBar } from '@react-navigation/bottom-tabs';
 import { Tabs } from 'expo-router';
+import { Text, View } from 'react-native';
+import WorkoutResumeBanner from '../../src/Components/WorkoutResumeBanner';
 import { Colors } from '../../src/Theme/colors';
 
 function TabIcon({ icon }: { icon: string }) {
@@ -18,6 +20,12 @@ export default function TabLayout() {
                 tabBarActiveTintColor: Colors.primary,
                 tabBarInactiveTintColor: Colors.textSecondary,
             }}
+            tabBar={(props) => (
+                <View>
+                    <WorkoutResumeBanner />
+                    <BottomTabBar {...props} />
+                </View>
+            )}
         >
             <Tabs.Screen
                 name="exercises"

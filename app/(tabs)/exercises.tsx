@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
@@ -12,7 +11,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AddExerciseInfoModal from '../../src/Components/AddExerciseInfoModal';
 import ExerciseInfo from '../../src/Domain/ExerciseInfo';
 import { MuscleGroupLabels } from '../../src/Enums/MuscleGroup';
-import { useActiveWorkout } from '../../src/Hooks/useActiveWorkout';
 import { useNotification } from '../../src/Hooks/useNotification';
 import { ExerciseInfoService } from '../../src/Services/ExerciseInfoService';
 import { Colors } from '../../src/Theme/colors';
@@ -22,8 +20,6 @@ export default function ExercisesScreen() {
     const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
     const { showError } = useNotification();
-    const { hasActiveWorkout, activeWorkoutId } = useActiveWorkout();
-    const router = useRouter();
 
     useEffect(() => {
         fetchExercises();
@@ -91,15 +87,6 @@ export default function ExercisesScreen() {
                     )}
                     contentContainerStyle={styles.list}
                 />
-            )}
-
-            {hasActiveWorkout && (
-                <Pressable
-                    style={styles.fab}
-                    onPress={() => router.push(`/workout/${activeWorkoutId}`)}
-                >
-                    <Text style={styles.fabText}>🏋️</Text>
-                </Pressable>
             )}
 
             <AddExerciseInfoModal
@@ -198,24 +185,5 @@ const styles = StyleSheet.create({
     emptySubtext: {
         color: Colors.textSecondary,
         fontSize: 14,
-    },
-    fab: {
-        position: 'absolute',
-        right: 16,
-        bottom: 80,
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        backgroundColor: Colors.primary,
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.4,
-        shadowRadius: 6,
-        elevation: 8,
-    },
-    fabText: {
-        fontSize: 24,
     },
 });

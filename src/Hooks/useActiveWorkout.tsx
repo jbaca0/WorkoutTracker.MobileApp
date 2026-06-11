@@ -4,6 +4,7 @@ import useAsyncStorage from "./useAsyncStorage";
 interface ActiveWorkoutContext {
     hasActiveWorkout: boolean;
     activeWorkoutId: string | null;
+    workoutStartTime: string | null;
     setActiveWorkout: (workoutId: string) => void;
     clearActiveWorkout: () => void;
 }
@@ -16,21 +17,25 @@ interface ActiveWorkoutProviderProps {
 
 export const ActiveWorkoutProvider: React.FC<ActiveWorkoutProviderProps> = ({ children }) => {
     const [activeWorkoutId, , setActiveWorkoutId] = useAsyncStorage<string | null>('activeWorkoutId', null);
+    const [workoutStartTime, , setWorkoutStartTime] = useAsyncStorage<string | null>('workoutStartTime', null);
 
     const hasActiveWorkout = activeWorkoutId !== null;
 
     function setActiveWorkout(workoutId: string) {
         setActiveWorkoutId(workoutId);
+        setWorkoutStartTime(new Date().toISOString());
     }
 
     function clearActiveWorkout() {
         setActiveWorkoutId(null);
+        setWorkoutStartTime(null);
     }
 
     return (
         <ActiveWorkoutContext.Provider value={{
             hasActiveWorkout,
             activeWorkoutId,
+            workoutStartTime,
             setActiveWorkout,
             clearActiveWorkout
         }}>
