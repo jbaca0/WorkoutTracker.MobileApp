@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, ScrollView } from 'react-native';
 import Exercise from '../Domain/Exercise';
 import Set from '../Domain/Set';
+import { TargetSource } from '../Enums/TargetSource';
 import { Colors } from '../Theme/colors';
 
 interface ExerciseProps {
@@ -50,7 +51,9 @@ const ExerciseComponent: React.FC<ExerciseProps> = ({ exercise, onChange }) => {
         onChange(updatedExercise);
     }
 
-    const hasPrevious = !!exercise.PreviousExercise;
+    const target = exercise.Target;
+    const hasTarget = !!target && target.Sets.length > 0;
+    const targetLabel = target?.Type === TargetSource.Plan ? '🎯 Goal' : 'Previous';
 
     return (
         <View style={styles.card}>
@@ -61,20 +64,12 @@ const ExerciseComponent: React.FC<ExerciseProps> = ({ exercise, onChange }) => {
                 </Pressable>
             </View>
 
-            {exercise.GoalRecommendation && (
-                <View style={styles.goalRow}>
-                    <Text style={styles.goalText}>
-                        🎯 Goal target: {exercise.GoalRecommendation.Weight} lbs × {exercise.GoalRecommendation.Reps} reps
-                    </Text>
-                </View>
-            )}
-
             {exercise.Sets.length > 0 ? (
                 <View style={styles.table}>
                     {/* Header row */}
                     <View style={styles.tableRow}>
                         <Text style={[styles.tableHeader, styles.colSet]}>Set</Text>
-                        {hasPrevious && <Text style={[styles.tableHeader, styles.colPrev]}>Previous</Text>}
+                        {hasTarget && <Text style={[styles.tableHeader, styles.colPrev]}>{targetLabel}</Text>}
                         <Text style={[styles.tableHeader, styles.colInput]}>Weight</Text>
                         <Text style={[styles.tableHeader, styles.colInput]}>Reps</Text>
                         <Text style={[styles.tableHeader, styles.colCheck]}>✓</Text>
@@ -86,10 +81,10 @@ const ExerciseComponent: React.FC<ExerciseProps> = ({ exercise, onChange }) => {
                             style={[styles.tableRow, set.Completed && styles.tableRowCompleted]}
                         >
                             <Text style={[styles.tableCell, styles.colSet]}>{index + 1}</Text>
-                            {hasPrevious && (
+                            {hasTarget && (
                                 <Text style={[styles.tableCell, styles.colPrev, styles.prevText]}>
-                                    {exercise.PreviousExercise!.Sets[index]
-                                        ? `${exercise.PreviousExercise!.Sets[index].Weight ?? '—'} × ${exercise.PreviousExercise!.Sets[index].Reps ?? '—'}`
+                                    {target!.Sets[index]
+                                        ? `${target!.Sets[index].Weight ?? '—'} × ${target!.Sets[index].Reps ?? '—'}`
                                         : '—'}
                                 </Text>
                             )}
@@ -242,18 +237,6 @@ const styles = StyleSheet.create({
         fontSize: 13,
         textAlign: 'center',
         paddingVertical: 8,
-    },
-    goalRow: {
-        backgroundColor: 'rgba(38,166,154,0.1)',
-        borderRadius: 6,
-        paddingVertical: 6,
-        paddingHorizontal: 10,
-        marginBottom: 10,
-    },
-    goalText: {
-        color: Colors.primary,
-        fontSize: 13,
-        fontWeight: '600',
     },
 });
 

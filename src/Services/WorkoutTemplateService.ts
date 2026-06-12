@@ -43,9 +43,8 @@ export class WorkoutTemplateService extends BaseService {
             .map(e => UserExerciseInfo.FromData(e))
             .map(e => new Exercise({
                 ExerciseInfo: e.ExerciseInfo,
-                PreviousExercise: e.LatestExercise,
-                Sets: e.LatestExercise?.Sets.map(() => new Set()) ?? [],
-                GoalRecommendation: e.GoalRecommendation
+                Sets: e.Target?.Sets.map(() => new Set()) ?? [],
+                Target: e.Target
             }));
 
         return { workoutId: response.workoutId, exercises };
