@@ -348,83 +348,83 @@ export default function PlanEditorScreen() {
                             </Pressable>
                         )}
                     </ScrollView>
-                </SafeAreaView>
-            </Modal>
 
-            {/* Create Template Modal */}
-            <Modal
-                visible={showCreateTemplate}
-                animationType="slide"
-                presentationStyle="pageSheet"
-                onRequestClose={() => setShowCreateTemplate(false)}
-            >
-                <SafeAreaView style={styles.container}>
-                    <View style={styles.header}>
-                        <Pressable onPress={() => { setShowCreateTemplate(false); setNewTemplateName(''); setPendingExercises([]); }}>
-                            <Text style={styles.backText}>Cancel</Text>
-                        </Pressable>
-                        <Text style={styles.headerTitle}>New Template</Text>
-                        <Pressable onPress={handleCreateTemplate} disabled={creatingTemplate}>
-                            {creatingTemplate
-                                ? <ActivityIndicator color={Colors.primary} size="small" />
-                                : <Text style={styles.saveText}>Create</Text>
-                            }
-                        </Pressable>
-                    </View>
+                    {/* Create Template Modal — nested inside Day Editor so it can stack on top */}
+                    <Modal
+                        visible={showCreateTemplate}
+                        animationType="slide"
+                        presentationStyle="pageSheet"
+                        onRequestClose={() => setShowCreateTemplate(false)}
+                    >
+                        <SafeAreaView style={styles.container}>
+                            <View style={styles.header}>
+                                <Pressable onPress={() => { setShowCreateTemplate(false); setNewTemplateName(''); setPendingExercises([]); }}>
+                                    <Text style={styles.backText}>Cancel</Text>
+                                </Pressable>
+                                <Text style={styles.headerTitle}>New Template</Text>
+                                <Pressable onPress={handleCreateTemplate} disabled={creatingTemplate}>
+                                    {creatingTemplate
+                                        ? <ActivityIndicator color={Colors.primary} size="small" />
+                                        : <Text style={styles.saveText}>Create</Text>
+                                    }
+                                </Pressable>
+                            </View>
 
-                    <ScrollView contentContainerStyle={styles.content}>
-                        <Text style={styles.sectionLabel}>Template Name</Text>
-                        <TextInput
-                            style={styles.nameInput}
-                            value={newTemplateName}
-                            onChangeText={setNewTemplateName}
-                            placeholder="e.g. Push Day"
-                            placeholderTextColor={Colors.textSecondary}
+                            <ScrollView contentContainerStyle={styles.content}>
+                                <Text style={styles.sectionLabel}>Template Name</Text>
+                                <TextInput
+                                    style={styles.nameInput}
+                                    value={newTemplateName}
+                                    onChangeText={setNewTemplateName}
+                                    placeholder="e.g. Push Day"
+                                    placeholderTextColor={Colors.textSecondary}
+                                />
+
+                                <Text style={styles.sectionLabel}>Exercises</Text>
+                                {pendingExercises.length === 0 ? (
+                                    <Text style={styles.noTemplatesText}>No exercises added yet.</Text>
+                                ) : (
+                                    pendingExercises.map(pe => (
+                                        <View key={pe.exerciseInfoId} style={styles.pendingExerciseRow}>
+                                            <Text style={styles.pendingExerciseName} numberOfLines={1}>
+                                                {getExerciseName(pe.exerciseInfoId)}
+                                            </Text>
+                                            <Text style={styles.targetRepsLabel}>Target reps</Text>
+                                            <TextInput
+                                                style={styles.targetRepsInput}
+                                                value={pe.targetReps ? String(pe.targetReps) : ''}
+                                                onChangeText={v => updatePendingTargetReps(pe.exerciseInfoId, v)}
+                                                keyboardType="numeric"
+                                                placeholder="0"
+                                                placeholderTextColor={Colors.textSecondary}
+                                            />
+                                        </View>
+                                    ))
+                                )}
+
+                                <Pressable style={styles.createTemplateBtn} onPress={() => setShowExercisePicker(true)}>
+                                    <Text style={styles.createTemplateBtnText}>+ Add Exercises</Text>
+                                </Pressable>
+                            </ScrollView>
+                        </SafeAreaView>
+
+                        <AddExerciseModal
+                            visible={showExercisePicker}
+                            onClose={() => setShowExercisePicker(false)}
+                            onExercisesAdded={async (ids) => {
+                                setPendingExercises(prev => {
+                                    const existingIds = new Set(prev.map(e => e.exerciseInfoId));
+                                    const additions = ids
+                                        .filter(id => !existingIds.has(id))
+                                        .map(id => ({ exerciseInfoId: id, targetReps: 0 }));
+                                    return [...prev, ...additions];
+                                });
+                                setShowExercisePicker(false);
+                            }}
                         />
-
-                        <Text style={styles.sectionLabel}>Exercises</Text>
-                        {pendingExercises.length === 0 ? (
-                            <Text style={styles.noTemplatesText}>No exercises added yet.</Text>
-                        ) : (
-                            pendingExercises.map(pe => (
-                                <View key={pe.exerciseInfoId} style={styles.pendingExerciseRow}>
-                                    <Text style={styles.pendingExerciseName} numberOfLines={1}>
-                                        {getExerciseName(pe.exerciseInfoId)}
-                                    </Text>
-                                    <Text style={styles.targetRepsLabel}>Target reps</Text>
-                                    <TextInput
-                                        style={styles.targetRepsInput}
-                                        value={pe.targetReps ? String(pe.targetReps) : ''}
-                                        onChangeText={v => updatePendingTargetReps(pe.exerciseInfoId, v)}
-                                        keyboardType="numeric"
-                                        placeholder="0"
-                                        placeholderTextColor={Colors.textSecondary}
-                                    />
-                                </View>
-                            ))
-                        )}
-
-                        <Pressable style={styles.createTemplateBtn} onPress={() => setShowExercisePicker(true)}>
-                            <Text style={styles.createTemplateBtnText}>+ Add Exercises</Text>
-                        </Pressable>
-                    </ScrollView>
+                    </Modal>
                 </SafeAreaView>
             </Modal>
-
-            <AddExerciseModal
-                visible={showExercisePicker}
-                onClose={() => setShowExercisePicker(false)}
-                onExercisesAdded={async (ids) => {
-                    setPendingExercises(prev => {
-                        const existingIds = new Set(prev.map(e => e.exerciseInfoId));
-                        const additions = ids
-                            .filter(id => !existingIds.has(id))
-                            .map(id => ({ exerciseInfoId: id, targetReps: 0 }));
-                        return [...prev, ...additions];
-                    });
-                    setShowExercisePicker(false);
-                }}
-            />
         </SafeAreaView>
     );
 }
