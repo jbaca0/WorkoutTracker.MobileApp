@@ -5,7 +5,7 @@ class ExerciseGoal {
     public id!: string;
     public exerciseInfoId!: string;
     public exerciseInfo?: ExerciseInfo;
-    public workoutPlanId!: string;
+    public workoutPlanId?: string;
     public startWeight!: number;
     public startReps!: number;
     public targetWeight!: number;

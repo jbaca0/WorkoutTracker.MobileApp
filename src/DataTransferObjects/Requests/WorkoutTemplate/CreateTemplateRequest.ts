@@ -1,6 +1,10 @@
+interface WorkoutTemplateExerciseSetRequest {
+    reps: number;
+}
+
 interface WorkoutTemplateExerciseRequest {
     exerciseInfoId: string;
-    targetReps: number;
+    sets: WorkoutTemplateExerciseSetRequest[];
 }
 
 interface CreateTemplateRequest {
@@ -8,5 +12,5 @@ interface CreateTemplateRequest {
     exercises: WorkoutTemplateExerciseRequest[];
 }
 
-export type { WorkoutTemplateExerciseRequest };
+export type { WorkoutTemplateExerciseRequest, WorkoutTemplateExerciseSetRequest };
 export default CreateTemplateRequest;

@@ -22,11 +22,12 @@ import { useNotification } from '../Hooks/useNotification';
 interface AddGoalModalProps {
     visible: boolean;
     plans: WorkoutPlan[];
+    defaultPlan?: WorkoutPlan;
     onClose: () => void;
     onGoalAdded: (goal: ExerciseGoal) => Promise<void>;
 }
 
-const AddGoalModal: React.FC<AddGoalModalProps> = ({ visible, plans, onClose, onGoalAdded }) => {
+const AddGoalModal: React.FC<AddGoalModalProps> = ({ visible, plans, defaultPlan, onClose, onGoalAdded }) => {
     const [exerciseInfos, setExerciseInfos] = useState<ExerciseInfo[]>([]);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
@@ -46,6 +47,7 @@ const AddGoalModal: React.FC<AddGoalModalProps> = ({ visible, plans, onClose, on
 
     useEffect(() => {
         if (!visible) return;
+        setSelectedPlan(defaultPlan ?? null);
         ExerciseInfoService.getExerciseInfos()
             .then(setExerciseInfos)
             .catch(() => showError('Failed to load exercises'))
@@ -58,7 +60,7 @@ const AddGoalModal: React.FC<AddGoalModalProps> = ({ visible, plans, onClose, on
 
     function reset() {
         setSelectedExercise(null);
-        setSelectedPlan(null);
+        setSelectedPlan(defaultPlan ?? null);
         setStartWeight('');
         setStartReps('');
         setTargetWeight('');
@@ -77,10 +79,6 @@ const AddGoalModal: React.FC<AddGoalModalProps> = ({ visible, plans, onClose, on
             showError('Please select an exercise');
             return;
         }
-        if (!selectedPlan) {
-            showError('Please select a plan');
-            return;
-        }
         const parsedTargetWeight = parseFloat(targetWeight);
         const parsedTargetReps = parseInt(targetReps);
         if (!parsedTargetWeight || !parsedTargetReps) {
@@ -96,7 +94,7 @@ const AddGoalModal: React.FC<AddGoalModalProps> = ({ visible, plans, onClose, on
         try {
             const goal = await ExerciseGoalService.createGoal({
                 exerciseInfoId: selectedExercise.Id,
-                workoutPlanId: selectedPlan.Id,
+                workoutPlanId: selectedPlan?.Id,
                 startWeight: startWeight.trim() ? parseFloat(startWeight) : undefined,
                 startReps: startReps.trim() ? parseInt(startReps) : undefined,
                 targetWeight: parsedTargetWeight,
@@ -139,10 +137,10 @@ const AddGoalModal: React.FC<AddGoalModalProps> = ({ visible, plans, onClose, on
                             </Text>
                         </Pressable>
 
-                        <Text style={styles.sectionLabel}>Plan</Text>
+                        <Text style={styles.sectionLabel}>Plan (optional)</Text>
                         <Pressable style={styles.selectInput} onPress={() => setShowPlanPicker(true)}>
                             <Text style={selectedPlan ? styles.selectInputText : styles.selectInputPlaceholder}>
-                                {selectedPlan ? selectedPlan.Name : 'Select a plan'}
+                                {selectedPlan ? selectedPlan.Name : 'No plan selected'}
                             </Text>
                         </Pressable>
 
@@ -251,6 +249,16 @@ const AddGoalModal: React.FC<AddGoalModalProps> = ({ visible, plans, onClose, on
                                 <Text style={styles.cancelText}>Done</Text>
                             </Pressable>
                         </View>
+                        <Pressable
+                            style={styles.pickerRow}
+                            onPress={() => {
+                                setSelectedPlan(null);
+                                setShowPlanPicker(false);
+                            }}
+                        >
+                            <Text style={styles.pickerRowText}>No plan</Text>
+                            {!selectedPlan && <Text style={styles.checkmark}>✓</Text>}
+                        </Pressable>
                         {plans.length === 0 ? (
                             <Text style={styles.noDataText}>No plans available. Create a plan first.</Text>
                         ) : (

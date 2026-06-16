@@ -1,19 +1,23 @@
 import WorkoutTemplateExerciseData from '../DataTransferObjects/Common/WorkoutTemplateExercise';
 import ExerciseInfo from './ExerciseInfo';
 
+interface TemplateSet {
+    Reps: number;
+}
+
 class WorkoutTemplateExercise {
     public Id: string;
     public ExerciseInfoId: string;
     public ExerciseInfo?: ExerciseInfo;
     public Order: number;
-    public TargetReps: number;
+    public Sets: TemplateSet[];
 
     constructor(data?: Partial<WorkoutTemplateExercise>) {
         this.Id = data?.Id || '';
         this.ExerciseInfoId = data?.ExerciseInfoId || '';
         this.ExerciseInfo = data?.ExerciseInfo;
         this.Order = data?.Order || 0;
-        this.TargetReps = data?.TargetReps || 0;
+        this.Sets = data?.Sets || [];
     }
 
     public static FromData(data: WorkoutTemplateExerciseData): WorkoutTemplateExercise {
@@ -22,7 +26,7 @@ class WorkoutTemplateExercise {
             ExerciseInfoId: data.exerciseInfoId,
             ExerciseInfo: data.exerciseInfo ? ExerciseInfo.FromData(data.exerciseInfo) : undefined,
             Order: data.order,
-            TargetReps: data.targetReps
+            Sets: (data.sets ?? []).map(s => ({ Reps: s.reps })),
         });
     }
 
@@ -32,7 +36,7 @@ class WorkoutTemplateExercise {
             exerciseInfoId: this.ExerciseInfoId,
             exerciseInfo: this.ExerciseInfo?.ToData(),
             order: this.Order,
-            targetReps: this.TargetReps
+            sets: this.Sets.map((s, i) => ({ id: '', order: i, reps: s.Reps })),
         };
     }
 }

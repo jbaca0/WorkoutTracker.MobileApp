@@ -2,12 +2,18 @@ import ExerciseGoal from '../Domain/ExerciseGoal';
 import ExerciseGoalData from '../DataTransferObjects/Common/ExerciseGoal';
 import CreateExerciseGoalRequest from '../DataTransferObjects/Requests/ExerciseGoal/CreateExerciseGoalRequest';
 import UpdateExerciseGoalRequest from '../DataTransferObjects/Requests/ExerciseGoal/UpdateExerciseGoalRequest';
+import AssignGoalToPlanRequest from '../DataTransferObjects/Requests/ExerciseGoal/AssignGoalToPlanRequest';
 import GetExerciseGoalsResponse from '../DataTransferObjects/Responses/ExerciseGoal/GetExerciseGoalsResponse';
 import { BaseService } from './BaseService';
 
 export class ExerciseGoalService extends BaseService {
     public static async getGoals(): Promise<ExerciseGoal[]> {
         const response = await this.fetchFromServer<GetExerciseGoalsResponse>('/exerciseGoals');
+        return response.goals.map(ExerciseGoal.FromData);
+    }
+
+    public static async getGoalsByPlan(planId: string): Promise<ExerciseGoal[]> {
+        const response = await this.fetchFromServer<GetExerciseGoalsResponse>(`/exerciseGoals/plan/${planId}`);
         return response.goals.map(ExerciseGoal.FromData);
     }
 
@@ -18,6 +24,10 @@ export class ExerciseGoalService extends BaseService {
 
     public static async updateGoal(id: string, request: UpdateExerciseGoalRequest): Promise<void> {
         await this.fetchFromServer<void>(`/exerciseGoals/${id}`, request, 'PUT');
+    }
+
+    public static async assignGoalToPlan(goalId: string, request: AssignGoalToPlanRequest): Promise<void> {
+        await this.fetchFromServer<void>(`/exerciseGoals/${goalId}/plan`, request, 'PUT');
     }
 
     public static async deleteGoal(id: string): Promise<void> {

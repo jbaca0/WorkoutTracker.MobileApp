@@ -17,19 +17,22 @@ import { useNotification } from '../../src/Hooks/useNotification';
 import { WorkoutPlanService } from '../../src/Services/WorkoutPlanService';
 import { WorkoutTemplateService } from '../../src/Services/WorkoutTemplateService';
 import { ExerciseInfoService } from '../../src/Services/ExerciseInfoService';
+import { ExerciseGoalService } from '../../src/Services/ExerciseGoalService';
 import WorkoutTemplate from '../../src/Domain/WorkoutTemplate';
+import WorkoutPlan from '../../src/Domain/WorkoutPlan';
 import ExerciseInfo from '../../src/Domain/ExerciseInfo';
+import ExerciseGoal from '../../src/Domain/ExerciseGoal';
 import { WorkoutPlanDayRequest } from '../../src/DataTransferObjects/Requests/WorkoutPlan/AddWorkoutPlanRequest';
 import { WorkoutTemplateExerciseRequest } from '../../src/DataTransferObjects/Requests/WorkoutTemplate/CreateTemplateRequest';
 import { Colors } from '../../src/Theme/colors';
 import AddExerciseModal from '../../src/Components/AddExerciseModal';
+import AddGoalModal from '../../src/Components/AddGoalModal';
 
 function toDateInputString(date: Date): string {
     return date.toISOString().slice(0, 10);
 }
 
 const ORDERED_DAYS = [1, 2, 3, 4, 5, 6, 0]; // Mon–Sun
-const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DAY_FULL_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 interface DayAssignment {
@@ -50,9 +53,16 @@ export default function PlanEditorScreen() {
     const [endDate, setEndDate] = useState('');
     const [days, setDays] = useState<DayAssignment[]>([]);
     const [templates, setTemplates] = useState<WorkoutTemplate[]>([]);
+    const [plans, setPlans] = useState<WorkoutPlan[]>([]);
     const [exerciseInfos, setExerciseInfos] = useState<ExerciseInfo[]>([]);
     const [loading, setLoading] = useState(!isNew);
     const [saving, setSaving] = useState(false);
+
+    // Goals state (only relevant when editing an existing plan)
+    const [planGoals, setPlanGoals] = useState<ExerciseGoal[]>([]);
+    const [allGoals, setAllGoals] = useState<ExerciseGoal[]>([]);
+    const [showGoalPicker, setShowGoalPicker] = useState(false);
+    const [showAddGoalModal, setShowAddGoalModal] = useState(false);
 
     const [editingDow, setEditingDow] = useState<number | null>(null);
     const [showDayEditor, setShowDayEditor] = useState(false);
@@ -66,10 +76,11 @@ export default function PlanEditorScreen() {
     useEffect(() => {
         WorkoutTemplateService.getTemplates().then(setTemplates).catch(() => {});
         ExerciseInfoService.getExerciseInfos().then(setExerciseInfos).catch(() => {});
+        WorkoutPlanService.getWorkoutPlans().then(setPlans).catch(() => {});
 
         if (!isNew) {
-            WorkoutPlanService.getWorkoutPlans().then(plans => {
-                const plan = plans.find(p => p.Id === planId);
+            WorkoutPlanService.getWorkoutPlans().then(allPlans => {
+                const plan = allPlans.find(p => p.Id === planId);
                 if (plan) {
                     setName(plan.Name);
                     setStartDate(toDateInputString(plan.StartDate));
@@ -83,6 +94,10 @@ export default function PlanEditorScreen() {
                 }
             }).catch(() => showError('Failed to load plan'))
               .finally(() => setLoading(false));
+
+            // Load goals for this plan and all user goals (for the picker)
+            ExerciseGoalService.getGoalsByPlan(planId).then(setPlanGoals).catch(() => {});
+            ExerciseGoalService.getGoals().then(setAllGoals).catch(() => {});
         }
     }, [planId]);
 
@@ -140,11 +155,51 @@ export default function PlanEditorScreen() {
         return exerciseInfos.find(ei => ei.Id === exerciseInfoId)?.Name || 'Exercise';
     }
 
-    function updatePendingTargetReps(exerciseInfoId: string, value: string) {
-        const targetReps = parseInt(value) || 0;
+    function addSetToPendingExercise(exerciseInfoId: string) {
         setPendingExercises(prev => prev.map(e =>
-            e.exerciseInfoId === exerciseInfoId ? { ...e, targetReps } : e
+            e.exerciseInfoId === exerciseInfoId
+                ? { ...e, sets: [...e.sets, { reps: 0 }] }
+                : e
         ));
+    }
+
+    function removeSetFromPendingExercise(exerciseInfoId: string, setIndex: number) {
+        setPendingExercises(prev => prev.map(e =>
+            e.exerciseInfoId === exerciseInfoId
+                ? { ...e, sets: e.sets.filter((_, i) => i !== setIndex) }
+                : e
+        ));
+    }
+
+    function updateSetReps(exerciseInfoId: string, setIndex: number, value: string) {
+        const reps = parseInt(value) || 0;
+        setPendingExercises(prev => prev.map(e =>
+            e.exerciseInfoId === exerciseInfoId
+                ? { ...e, sets: e.sets.map((s, i) => i === setIndex ? { reps } : s) }
+                : e
+        ));
+    }
+
+    async function handleAssignGoalToPlan(goal: ExerciseGoal) {
+        try {
+            await ExerciseGoalService.assignGoalToPlan(goal.Id, { workoutPlanId: planId });
+            const updated = { ...goal, WorkoutPlanId: planId } as ExerciseGoal;
+            setPlanGoals(prev => [...prev, updated]);
+            setAllGoals(prev => prev.map(g => g.Id === goal.Id ? updated : g));
+            setShowGoalPicker(false);
+        } catch {
+            showError('Failed to assign goal to plan');
+        }
+    }
+
+    async function handleUnlinkGoal(goal: ExerciseGoal) {
+        try {
+            await ExerciseGoalService.assignGoalToPlan(goal.Id, { workoutPlanId: undefined });
+            setPlanGoals(prev => prev.filter(g => g.Id !== goal.Id));
+            setAllGoals(prev => prev.map(g => g.Id === goal.Id ? { ...g, WorkoutPlanId: undefined } as ExerciseGoal : g));
+        } catch {
+            showError('Failed to unlink goal from plan');
+        }
     }
 
     async function handleCreateTemplate() {
@@ -209,6 +264,9 @@ export default function PlanEditorScreen() {
     }
 
     const editingAssignment = editingDow !== null ? getDayAssignment(editingDow) : undefined;
+    const currentPlan = plans.find(p => p.Id === planId);
+    // Goals not already linked to this plan, available to assign
+    const unlinkedGoals = allGoals.filter(g => g.WorkoutPlanId !== planId);
 
     return (
         <SafeAreaView style={styles.container}>
@@ -275,6 +333,38 @@ export default function PlanEditorScreen() {
                         </Pressable>
                     );
                 })}
+
+                {/* Goals section — only for existing plans */}
+                {!isNew && (
+                    <>
+                        <Text style={[styles.sectionLabel, { marginTop: 28 }]}>Goals</Text>
+                        {planGoals.length === 0 ? (
+                            <Text style={styles.noGoalsText}>No goals linked to this plan.</Text>
+                        ) : (
+                            planGoals.map(goal => (
+                                <View key={goal.Id} style={styles.goalRow}>
+                                    <View style={styles.goalInfo}>
+                                        <Text style={styles.goalName}>{goal.ExerciseInfo.Name}</Text>
+                                        <Text style={styles.goalTarget}>
+                                            {goal.TargetWeight} lbs × {goal.TargetReps} rep{goal.TargetReps !== 1 ? 's' : ''} by {goal.GoalDate.toISOString().slice(0, 10)}
+                                        </Text>
+                                    </View>
+                                    <Pressable onPress={() => handleUnlinkGoal(goal)} style={styles.unlinkBtn}>
+                                        <Text style={styles.unlinkBtnText}>Unlink</Text>
+                                    </Pressable>
+                                </View>
+                            ))
+                        )}
+                        <View style={styles.goalActions}>
+                            <Pressable style={styles.goalActionBtn} onPress={() => setShowGoalPicker(true)}>
+                                <Text style={styles.goalActionBtnText}>Assign Existing Goal</Text>
+                            </Pressable>
+                            <Pressable style={styles.goalActionBtn} onPress={() => setShowAddGoalModal(true)}>
+                                <Text style={styles.goalActionBtnText}>+ New Goal</Text>
+                            </Pressable>
+                        </View>
+                    </>
+                )}
             </ScrollView>
 
             {/* Day Editor Modal */}
@@ -385,19 +475,38 @@ export default function PlanEditorScreen() {
                                     <Text style={styles.noTemplatesText}>No exercises added yet.</Text>
                                 ) : (
                                     pendingExercises.map(pe => (
-                                        <View key={pe.exerciseInfoId} style={styles.pendingExerciseRow}>
+                                        <View key={pe.exerciseInfoId} style={styles.pendingExerciseCard}>
                                             <Text style={styles.pendingExerciseName} numberOfLines={1}>
                                                 {getExerciseName(pe.exerciseInfoId)}
                                             </Text>
-                                            <Text style={styles.targetRepsLabel}>Target reps</Text>
-                                            <TextInput
-                                                style={styles.targetRepsInput}
-                                                value={pe.targetReps ? String(pe.targetReps) : ''}
-                                                onChangeText={v => updatePendingTargetReps(pe.exerciseInfoId, v)}
-                                                keyboardType="numeric"
-                                                placeholder="0"
-                                                placeholderTextColor={Colors.textSecondary}
-                                            />
+                                            {pe.sets.map((set, setIndex) => (
+                                                <View key={setIndex} style={styles.setRow}>
+                                                    <Text style={styles.setLabel}>Set {setIndex + 1}</Text>
+                                                    <Text style={styles.repsLabel}>Reps</Text>
+                                                    <TextInput
+                                                        style={styles.repsInput}
+                                                        value={set.reps ? String(set.reps) : ''}
+                                                        onChangeText={v => updateSetReps(pe.exerciseInfoId, setIndex, v)}
+                                                        keyboardType="numeric"
+                                                        placeholder="0"
+                                                        placeholderTextColor={Colors.textSecondary}
+                                                    />
+                                                    {pe.sets.length > 1 && (
+                                                        <Pressable
+                                                            onPress={() => removeSetFromPendingExercise(pe.exerciseInfoId, setIndex)}
+                                                            style={styles.removeSetBtn}
+                                                        >
+                                                            <Text style={styles.removeSetBtnText}>×</Text>
+                                                        </Pressable>
+                                                    )}
+                                                </View>
+                                            ))}
+                                            <Pressable
+                                                onPress={() => addSetToPendingExercise(pe.exerciseInfoId)}
+                                                style={styles.addSetBtn}
+                                            >
+                                                <Text style={styles.addSetBtnText}>+ Add Set</Text>
+                                            </Pressable>
                                         </View>
                                     ))
                                 )}
@@ -416,7 +525,7 @@ export default function PlanEditorScreen() {
                                     const existingIds = new Set(prev.map(e => e.exerciseInfoId));
                                     const additions = ids
                                         .filter(id => !existingIds.has(id))
-                                        .map(id => ({ exerciseInfoId: id, targetReps: 0 }));
+                                        .map(id => ({ exerciseInfoId: id, sets: [{ reps: 0 }] }));
                                     return [...prev, ...additions];
                                 });
                                 setShowExercisePicker(false);
@@ -425,6 +534,60 @@ export default function PlanEditorScreen() {
                     </Modal>
                 </SafeAreaView>
             </Modal>
+
+            {/* Goal Picker Modal — assign existing goals to this plan */}
+            <Modal
+                visible={showGoalPicker}
+                animationType="slide"
+                presentationStyle="pageSheet"
+                onRequestClose={() => setShowGoalPicker(false)}
+            >
+                <SafeAreaView style={styles.container}>
+                    <View style={styles.header}>
+                        <Pressable onPress={() => setShowGoalPicker(false)}>
+                            <Text style={styles.backText}>Cancel</Text>
+                        </Pressable>
+                        <Text style={styles.headerTitle}>Assign Goal</Text>
+                        <View style={{ width: 60 }} />
+                    </View>
+                    {unlinkedGoals.length === 0 ? (
+                        <View style={{ padding: 24 }}>
+                            <Text style={styles.noGoalsText}>No unassigned goals available.</Text>
+                        </View>
+                    ) : (
+                        <FlatList
+                            data={unlinkedGoals}
+                            keyExtractor={item => item.Id}
+                            renderItem={({ item }) => (
+                                <Pressable style={styles.pickerRow} onPress={() => handleAssignGoalToPlan(item)}>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.pickerRowText}>{item.ExerciseInfo.Name}</Text>
+                                        <Text style={styles.pickerRowSub}>
+                                            {item.TargetWeight} lbs × {item.TargetReps} rep{item.TargetReps !== 1 ? 's' : ''}
+                                        </Text>
+                                    </View>
+                                    <Text style={styles.pickerRowChevron}>›</Text>
+                                </Pressable>
+                            )}
+                        />
+                    )}
+                </SafeAreaView>
+            </Modal>
+
+            {/* Add Goal Modal — create a new goal pre-assigned to this plan */}
+            <AddGoalModal
+                visible={showAddGoalModal}
+                plans={plans}
+                defaultPlan={currentPlan}
+                onClose={() => setShowAddGoalModal(false)}
+                onGoalAdded={async (goal) => {
+                    if (goal.WorkoutPlanId === planId) {
+                        setPlanGoals(prev => [...prev, goal]);
+                    }
+                    setAllGoals(prev => [...prev, goal]);
+                    setShowAddGoalModal(false);
+                }}
+            />
         </SafeAreaView>
     );
 }
@@ -531,21 +694,27 @@ const styles = StyleSheet.create({
     },
     clearAllBtnText: { color: Colors.error, fontSize: 15 },
     noTemplatesText: { color: Colors.textSecondary, fontSize: 14, marginBottom: 8 },
-    exerciseCount: { color: Colors.text, fontSize: 15, marginBottom: 8 },
-    pendingExerciseRow: {
+    pendingExerciseCard: {
+        backgroundColor: Colors.inputBackground,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: Colors.border,
+        padding: 12,
+        marginBottom: 10,
+    },
+    pendingExerciseName: { color: Colors.text, fontSize: 15, fontWeight: '600', marginBottom: 8 },
+    setRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 8,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.border,
+        marginBottom: 6,
     },
-    pendingExerciseName: { color: Colors.text, fontSize: 14, flex: 1, marginRight: 8 },
-    targetRepsLabel: { color: Colors.textSecondary, fontSize: 12, marginRight: 8 },
-    targetRepsInput: {
-        backgroundColor: Colors.inputBackground,
+    setLabel: { color: Colors.textSecondary, fontSize: 13, width: 44 },
+    repsLabel: { color: Colors.textSecondary, fontSize: 13, marginRight: 6 },
+    repsInput: {
+        backgroundColor: Colors.background,
         color: Colors.text,
         borderRadius: 6,
-        paddingVertical: 6,
+        paddingVertical: 5,
         paddingHorizontal: 8,
         textAlign: 'center',
         fontSize: 14,
@@ -553,4 +722,60 @@ const styles = StyleSheet.create({
         borderColor: Colors.border,
         width: 56,
     },
+    removeSetBtn: {
+        marginLeft: 10,
+        padding: 4,
+    },
+    removeSetBtnText: { color: Colors.error, fontSize: 20, lineHeight: 22 },
+    addSetBtn: {
+        marginTop: 6,
+        paddingVertical: 6,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: Colors.border,
+        borderRadius: 6,
+    },
+    addSetBtnText: { color: Colors.primary, fontSize: 13, fontWeight: '500' },
+    // Goals section
+    noGoalsText: { color: Colors.textSecondary, fontSize: 14, marginBottom: 12 },
+    goalRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.border,
+    },
+    goalInfo: { flex: 1 },
+    goalName: { color: Colors.text, fontSize: 14, fontWeight: '600' },
+    goalTarget: { color: Colors.textSecondary, fontSize: 12, marginTop: 2 },
+    unlinkBtn: {
+        borderWidth: 1,
+        borderColor: Colors.border,
+        borderRadius: 6,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+    },
+    unlinkBtnText: { color: Colors.textSecondary, fontSize: 12 },
+    goalActions: { flexDirection: 'row', gap: 8, marginTop: 12 },
+    goalActionBtn: {
+        flex: 1,
+        borderWidth: 1,
+        borderColor: Colors.primary,
+        borderRadius: 10,
+        paddingVertical: 10,
+        alignItems: 'center',
+    },
+    goalActionBtnText: { color: Colors.primary, fontSize: 13, fontWeight: '600' },
+    // Goal picker modal
+    pickerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.border,
+    },
+    pickerRowText: { color: Colors.text, fontSize: 15 },
+    pickerRowSub: { color: Colors.textSecondary, fontSize: 12, marginTop: 2 },
+    pickerRowChevron: { color: Colors.textSecondary, fontSize: 20 },
 });

@@ -43,7 +43,11 @@ export class WorkoutTemplateService extends BaseService {
             .map(e => UserExerciseInfo.FromData(e))
             .map(e => new Exercise({
                 ExerciseInfo: e.ExerciseInfo,
-                Sets: e.Target?.Sets.map(() => new Set()) ?? [],
+                Sets: e.Target?.Sets.map((s, i) => new Set({
+                    Reps: s.Reps,
+                    Weight: s.Weight,
+                    Order: i
+                })) ?? [],
                 Target: e.Target
             }));
 

@@ -1,6 +1,6 @@
 interface CreateExerciseGoalRequest {
     exerciseInfoId: string;
-    workoutPlanId: string;
+    workoutPlanId?: string;
     startWeight?: number;
     startReps?: number;
     targetWeight: number;

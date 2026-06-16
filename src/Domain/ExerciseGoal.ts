@@ -6,7 +6,7 @@ class ExerciseGoal {
     public Id: string;
     public Key: number;
     public ExerciseInfo: ExerciseInfo;
-    public WorkoutPlanId: string;
+    public WorkoutPlanId?: string;
     public StartWeight: number;
     public StartReps: number;
     public TargetWeight: number;
@@ -18,7 +18,7 @@ class ExerciseGoal {
         this.Id = data?.Id || '';
         this.Key = data?.Key || KeyGenerator.GenerateKey();
         this.ExerciseInfo = data?.ExerciseInfo || new ExerciseInfo();
-        this.WorkoutPlanId = data?.WorkoutPlanId || '';
+        this.WorkoutPlanId = data?.WorkoutPlanId;
         this.StartWeight = data?.StartWeight || 0;
         this.StartReps = data?.StartReps || 0;
         this.TargetWeight = data?.TargetWeight || 0;
