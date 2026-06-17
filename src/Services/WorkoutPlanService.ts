@@ -28,7 +28,8 @@ export class WorkoutPlanService extends BaseService {
 
     public static async getTodaysWorkout(): Promise<GetTodaysWorkoutResponse | null> {
         try {
-            return await this.fetchFromServer<GetTodaysWorkoutResponse>('/getTodaysWorkout');
+            const dayOfWeek = new Date().getDay();
+            return await this.fetchFromServer<GetTodaysWorkoutResponse>(`/getTodaysWorkout?dayOfWeek=${dayOfWeek}`);
         } catch {
             return null;
         }

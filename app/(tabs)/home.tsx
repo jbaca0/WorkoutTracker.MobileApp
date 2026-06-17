@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
     View,
     Text,
@@ -7,7 +7,7 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useAuth } from '../../src/Hooks/useAuth';
 import { useActiveWorkout } from '../../src/Hooks/useActiveWorkout';
 import { useNotification } from '../../src/Hooks/useNotification';
@@ -26,11 +26,13 @@ export default function HomeScreen() {
     const [todaysWorkout, setTodaysWorkout] = useState<GetTodaysWorkoutResponse | null>(null);
     const [startingScheduled, setStartingScheduled] = useState(false);
 
-    useEffect(() => {
-        if (!hasActiveWorkout) {
-            WorkoutPlanService.getTodaysWorkout().then(setTodaysWorkout);
-        }
-    }, [hasActiveWorkout]);
+    useFocusEffect(
+        useCallback(() => {
+            if (!hasActiveWorkout) {
+                WorkoutPlanService.getTodaysWorkout().then(setTodaysWorkout);
+            }
+        }, [hasActiveWorkout])
+    );
 
     async function handleStartScheduledWorkout() {
         if (!todaysWorkout?.template) return;
