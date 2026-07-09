@@ -8,9 +8,9 @@ import {
     TextInput,
     StyleSheet,
     ActivityIndicator,
-    SafeAreaView,
     ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import ExerciseInfo from '../Domain/ExerciseInfo';
 import { ExerciseInfoService } from '../Services/ExerciseInfoService';
 import { MuscleGroup, MuscleGroupLabels, AllMuscleGroups } from '../Enums/MuscleGroup';
@@ -21,9 +21,10 @@ interface AddExerciseModalProps {
     visible: boolean;
     onClose: () => void;
     onExercisesAdded: (exerciseIds: string[]) => Promise<void>;
+    presentationStyle?: 'pageSheet' | 'fullScreen';
 }
 
-const AddExerciseModal: React.FC<AddExerciseModalProps> = ({ visible, onClose, onExercisesAdded }) => {
+const AddExerciseModal: React.FC<AddExerciseModalProps> = ({ visible, onClose, onExercisesAdded, presentationStyle = 'pageSheet' }) => {
     const [exerciseInfos, setExerciseInfos] = useState<ExerciseInfo[]>([]);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(true);
@@ -76,8 +77,8 @@ const AddExerciseModal: React.FC<AddExerciseModalProps> = ({ visible, onClose, o
     }
 
     return (
-        <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleClose}>
-            <SafeAreaView style={styles.container}>
+        <Modal visible={visible} animationType="slide" presentationStyle={presentationStyle} onRequestClose={handleClose}>
+            <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
                 <View style={styles.header}>
                     <Text style={styles.title}>Add Exercises</Text>
                     <Pressable onPress={handleClose}>

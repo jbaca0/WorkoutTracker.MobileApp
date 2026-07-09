@@ -6,12 +6,12 @@ import {
     Pressable,
     StyleSheet,
     ActivityIndicator,
-    SafeAreaView,
     ScrollView,
     Modal,
     FlatList,
     Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useNotification } from '../../src/Hooks/useNotification';
 import { WorkoutPlanService } from '../../src/Services/WorkoutPlanService';
@@ -371,10 +371,10 @@ export default function PlanEditorScreen() {
             <Modal
                 visible={showDayEditor}
                 animationType="slide"
-                presentationStyle="pageSheet"
+                presentationStyle="fullScreen"
                 onRequestClose={() => setShowDayEditor(false)}
             >
-                <SafeAreaView style={styles.container}>
+                <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
                     <View style={styles.header}>
                         <Pressable onPress={() => setShowDayEditor(false)}>
                             <Text style={styles.backText}>Cancel</Text>
@@ -443,10 +443,10 @@ export default function PlanEditorScreen() {
                     <Modal
                         visible={showCreateTemplate}
                         animationType="slide"
-                        presentationStyle="pageSheet"
+                        presentationStyle="fullScreen"
                         onRequestClose={() => setShowCreateTemplate(false)}
                     >
-                        <SafeAreaView style={styles.container}>
+                        <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
                             <View style={styles.header}>
                                 <Pressable onPress={() => { setShowCreateTemplate(false); setNewTemplateName(''); setPendingExercises([]); }}>
                                     <Text style={styles.backText}>Cancel</Text>
@@ -519,6 +519,7 @@ export default function PlanEditorScreen() {
 
                         <AddExerciseModal
                             visible={showExercisePicker}
+                            presentationStyle="fullScreen"
                             onClose={() => setShowExercisePicker(false)}
                             onExercisesAdded={async (ids) => {
                                 setPendingExercises(prev => {
