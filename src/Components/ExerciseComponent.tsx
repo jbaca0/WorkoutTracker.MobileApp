@@ -8,9 +8,10 @@ import { Colors } from '../Theme/colors';
 interface ExerciseProps {
     exercise: Exercise;
     onChange: (exercise: Exercise) => void;
+    onSetCompleted?: () => void;
 }
 
-const ExerciseComponent: React.FC<ExerciseProps> = ({ exercise, onChange }) => {
+const ExerciseComponent: React.FC<ExerciseProps> = ({ exercise, onChange, onSetCompleted }) => {
     function handleAddSet() {
         const updatedExercise = new Exercise({
             ...exercise,
@@ -49,6 +50,10 @@ const ExerciseComponent: React.FC<ExerciseProps> = ({ exercise, onChange }) => {
             )
         });
         onChange(updatedExercise);
+        // Start the rest timer only when a set is being marked complete.
+        if (value) {
+            onSetCompleted?.();
+        }
     }
 
     const target = exercise.Target;
