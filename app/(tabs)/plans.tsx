@@ -18,6 +18,7 @@ import { ExerciseGoalService } from '../../src/Services/ExerciseGoalService';
 import WorkoutPlan from '../../src/Domain/WorkoutPlan';
 import ExerciseGoal from '../../src/Domain/ExerciseGoal';
 import AddGoalModal from '../../src/Components/AddGoalModal';
+import { formatDisplayDateFromDate } from '../../src/Utilities/DateUtils';
 import { Colors } from '../../src/Theme/colors';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -231,7 +232,7 @@ export default function PlansScreen() {
                                         <Text style={styles.planName}>{item.ExerciseInfo.Name}</Text>
                                     </View>
                                     <Text style={styles.planDaysSummary}>
-                                        Target: {item.TargetWeight} lbs × {item.TargetReps} rep{item.TargetReps !== 1 ? 's' : ''} by {item.GoalDate.toISOString().slice(0, 10)}
+                                        Target: {item.TargetWeight} lbs × {item.TargetReps} rep{item.TargetReps !== 1 ? 's' : ''} by {formatDisplayDateFromDate(item.GoalDate)}
                                     </Text>
                                     {recommendation && (
                                         <Text style={styles.planDaysSummary}>

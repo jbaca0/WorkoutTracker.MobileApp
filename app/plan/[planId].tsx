@@ -29,10 +29,8 @@ import { Colors } from '../../src/Theme/colors';
 import AddExerciseModal from '../../src/Components/AddExerciseModal';
 import AddGoalModal from '../../src/Components/AddGoalModal';
 import FullScreenModal from '../../src/Components/FullScreenModal';
-
-function toDateInputString(date: Date): string {
-    return date.toISOString().slice(0, 10);
-}
+import DateField from '../../src/Components/DateField';
+import { toDateInputString, formatDisplayDateFromDate } from '../../src/Utilities/DateUtils';
 
 const ORDERED_DAYS = [1, 2, 3, 4, 5, 6, 0]; // Mon–Sun
 const DAY_FULL_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -305,21 +303,19 @@ export default function PlanEditorScreen() {
                 />
 
                 <Text style={styles.sectionLabel}>Start Date</Text>
-                <TextInput
-                    style={styles.nameInput}
+                <DateField
                     value={startDate}
-                    onChangeText={setStartDate}
-                    placeholder="YYYY-MM-DD"
-                    placeholderTextColor={Colors.textSecondary}
+                    onChange={setStartDate}
+                    placeholder="Select a start date"
                 />
 
                 <Text style={styles.sectionLabel}>End Date (optional)</Text>
-                <TextInput
-                    style={styles.nameInput}
+                <DateField
                     value={endDate}
-                    onChangeText={setEndDate}
-                    placeholder="YYYY-MM-DD"
-                    placeholderTextColor={Colors.textSecondary}
+                    onChange={setEndDate}
+                    placeholder="No end date"
+                    clearable
+                    minDate={startDate || undefined}
                 />
 
                 <Text style={styles.sectionLabel}>Weekly Schedule</Text>
@@ -357,7 +353,7 @@ export default function PlanEditorScreen() {
                                     <View style={styles.goalInfo}>
                                         <Text style={styles.goalName}>{goal.ExerciseInfo.Name}</Text>
                                         <Text style={styles.goalTarget}>
-                                            {goal.TargetWeight} lbs × {goal.TargetReps} rep{goal.TargetReps !== 1 ? 's' : ''} by {goal.GoalDate.toISOString().slice(0, 10)}
+                                            {goal.TargetWeight} lbs × {goal.TargetReps} rep{goal.TargetReps !== 1 ? 's' : ''} by {formatDisplayDateFromDate(goal.GoalDate)}
                                         </Text>
                                     </View>
                                     <Pressable onPress={() => handleUnlinkGoal(goal)} style={styles.unlinkBtn}>

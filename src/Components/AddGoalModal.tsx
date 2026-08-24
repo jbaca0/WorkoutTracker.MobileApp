@@ -12,6 +12,8 @@ import {
     Platform,
 } from 'react-native';
 import FullScreenModal from './FullScreenModal';
+import DateField from './DateField';
+import { toDateInputString } from '../Utilities/DateUtils';
 import ExerciseInfo from '../Domain/ExerciseInfo';
 import WorkoutPlan from '../Domain/WorkoutPlan';
 import ExerciseGoal from '../Domain/ExerciseGoal';
@@ -194,12 +196,11 @@ const AddGoalModal: React.FC<AddGoalModalProps> = ({ visible, plans, defaultPlan
                         />
 
                         <Text style={styles.sectionLabel}>Goal Date</Text>
-                        <TextInput
-                            style={styles.input}
+                        <DateField
                             value={goalDate}
-                            onChangeText={setGoalDate}
-                            placeholder="YYYY-MM-DD"
-                            placeholderTextColor={Colors.textSecondary}
+                            onChange={setGoalDate}
+                            placeholder="Select a goal date"
+                            minDate={toDateInputString(new Date())}
                         />
                     </ScrollView>
                     </KeyboardAvoidingView>
