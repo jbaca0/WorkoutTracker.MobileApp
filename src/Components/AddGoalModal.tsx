@@ -2,15 +2,14 @@ import React, { useEffect, useState } from 'react';
 import {
     View,
     Text,
-    Modal,
     Pressable,
     FlatList,
     TextInput,
     StyleSheet,
     ActivityIndicator,
-    SafeAreaView,
     ScrollView,
 } from 'react-native';
+import FullScreenModal from './FullScreenModal';
 import ExerciseInfo from '../Domain/ExerciseInfo';
 import WorkoutPlan from '../Domain/WorkoutPlan';
 import ExerciseGoal from '../Domain/ExerciseGoal';
@@ -111,8 +110,7 @@ const AddGoalModal: React.FC<AddGoalModalProps> = ({ visible, plans, defaultPlan
     }
 
     return (
-        <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleClose}>
-            <SafeAreaView style={styles.container}>
+        <FullScreenModal visible={visible} onRequestClose={handleClose}>
                 <View style={styles.header}>
                     <Pressable onPress={handleClose}>
                         <Text style={styles.cancelText}>Cancel</Text>
@@ -196,13 +194,10 @@ const AddGoalModal: React.FC<AddGoalModalProps> = ({ visible, plans, defaultPlan
                 )}
 
                 {/* Exercise Picker */}
-                <Modal
+                <FullScreenModal
                     visible={showExercisePicker}
-                    animationType="slide"
-                    presentationStyle="pageSheet"
                     onRequestClose={() => setShowExercisePicker(false)}
                 >
-                    <SafeAreaView style={styles.container}>
                         <View style={styles.header}>
                             <Text style={styles.title}>Select Exercise</Text>
                             <Pressable onPress={() => setShowExercisePicker(false)}>
@@ -232,17 +227,13 @@ const AddGoalModal: React.FC<AddGoalModalProps> = ({ visible, plans, defaultPlan
                                 </Pressable>
                             )}
                         />
-                    </SafeAreaView>
-                </Modal>
+                </FullScreenModal>
 
                 {/* Plan Picker */}
-                <Modal
+                <FullScreenModal
                     visible={showPlanPicker}
-                    animationType="slide"
-                    presentationStyle="pageSheet"
                     onRequestClose={() => setShowPlanPicker(false)}
                 >
-                    <SafeAreaView style={styles.container}>
                         <View style={styles.header}>
                             <Text style={styles.title}>Select Plan</Text>
                             <Pressable onPress={() => setShowPlanPicker(false)}>
@@ -279,10 +270,8 @@ const AddGoalModal: React.FC<AddGoalModalProps> = ({ visible, plans, defaultPlan
                                 )}
                             />
                         )}
-                    </SafeAreaView>
-                </Modal>
-            </SafeAreaView>
-        </Modal>
+                </FullScreenModal>
+        </FullScreenModal>
     );
 };
 

@@ -7,7 +7,6 @@ import {
     StyleSheet,
     ActivityIndicator,
     ScrollView,
-    Modal,
     FlatList,
     Alert,
 } from 'react-native';
@@ -27,6 +26,7 @@ import { WorkoutTemplateExerciseRequest } from '../../src/DataTransferObjects/Re
 import { Colors } from '../../src/Theme/colors';
 import AddExerciseModal from '../../src/Components/AddExerciseModal';
 import AddGoalModal from '../../src/Components/AddGoalModal';
+import FullScreenModal from '../../src/Components/FullScreenModal';
 
 function toDateInputString(date: Date): string {
     return date.toISOString().slice(0, 10);
@@ -368,13 +368,10 @@ export default function PlanEditorScreen() {
             </ScrollView>
 
             {/* Day Editor Modal */}
-            <Modal
+            <FullScreenModal
                 visible={showDayEditor}
-                animationType="slide"
-                presentationStyle="fullScreen"
                 onRequestClose={() => setShowDayEditor(false)}
             >
-                <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
                     <View style={styles.header}>
                         <Pressable onPress={() => setShowDayEditor(false)}>
                             <Text style={styles.backText}>Cancel</Text>
@@ -440,13 +437,10 @@ export default function PlanEditorScreen() {
                     </ScrollView>
 
                     {/* Create Template Modal — nested inside Day Editor so it can stack on top */}
-                    <Modal
+                    <FullScreenModal
                         visible={showCreateTemplate}
-                        animationType="slide"
-                        presentationStyle="fullScreen"
                         onRequestClose={() => setShowCreateTemplate(false)}
                     >
-                        <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
                             <View style={styles.header}>
                                 <Pressable onPress={() => { setShowCreateTemplate(false); setNewTemplateName(''); setPendingExercises([]); }}>
                                     <Text style={styles.backText}>Cancel</Text>
@@ -515,11 +509,9 @@ export default function PlanEditorScreen() {
                                     <Text style={styles.createTemplateBtnText}>+ Add Exercises</Text>
                                 </Pressable>
                             </ScrollView>
-                        </SafeAreaView>
 
                         <AddExerciseModal
                             visible={showExercisePicker}
-                            presentationStyle="fullScreen"
                             onClose={() => setShowExercisePicker(false)}
                             onExercisesAdded={async (ids) => {
                                 setPendingExercises(prev => {
@@ -532,18 +524,14 @@ export default function PlanEditorScreen() {
                                 setShowExercisePicker(false);
                             }}
                         />
-                    </Modal>
-                </SafeAreaView>
-            </Modal>
+                    </FullScreenModal>
+            </FullScreenModal>
 
             {/* Goal Picker Modal — assign existing goals to this plan */}
-            <Modal
+            <FullScreenModal
                 visible={showGoalPicker}
-                animationType="slide"
-                presentationStyle="pageSheet"
                 onRequestClose={() => setShowGoalPicker(false)}
             >
-                <SafeAreaView style={styles.container}>
                     <View style={styles.header}>
                         <Pressable onPress={() => setShowGoalPicker(false)}>
                             <Text style={styles.backText}>Cancel</Text>
@@ -572,8 +560,7 @@ export default function PlanEditorScreen() {
                             )}
                         />
                     )}
-                </SafeAreaView>
-            </Modal>
+            </FullScreenModal>
 
             {/* Add Goal Modal — create a new goal pre-assigned to this plan */}
             <AddGoalModal
