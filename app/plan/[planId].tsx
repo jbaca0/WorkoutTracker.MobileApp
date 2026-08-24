@@ -26,7 +26,6 @@ import ExerciseGoal from '../../src/Domain/ExerciseGoal';
 import { WorkoutPlanDayRequest } from '../../src/DataTransferObjects/Requests/WorkoutPlan/AddWorkoutPlanRequest';
 import { WorkoutTemplateExerciseRequest } from '../../src/DataTransferObjects/Requests/WorkoutTemplate/CreateTemplateRequest';
 import { Colors } from '../../src/Theme/colors';
-import AddExerciseModal from '../../src/Components/AddExerciseModal';
 import AddGoalModal from '../../src/Components/AddGoalModal';
 import FullScreenModal from '../../src/Components/FullScreenModal';
 import DateField from '../../src/Components/DateField';
@@ -69,7 +68,6 @@ export default function PlanEditorScreen() {
     const [noteText, setNoteText] = useState('');
     const [showCreateTemplate, setShowCreateTemplate] = useState(false);
     const [newTemplateName, setNewTemplateName] = useState('');
-    const [showExercisePicker, setShowExercisePicker] = useState(false);
     const [pendingExercises, setPendingExercises] = useState<WorkoutTemplateExerciseRequest[]>([]);
     const [creatingTemplate, setCreatingTemplate] = useState(false);
 
@@ -149,35 +147,6 @@ export default function PlanEditorScreen() {
         if (editingDow === null) return;
         setDays(prev => prev.filter(d => d.dayOfWeek !== editingDow));
         setShowDayEditor(false);
-    }
-
-    function getExerciseName(exerciseInfoId: string): string {
-        return exerciseInfos.find(ei => ei.Id === exerciseInfoId)?.Name || 'Exercise';
-    }
-
-    function addSetToPendingExercise(exerciseInfoId: string) {
-        setPendingExercises(prev => prev.map(e =>
-            e.exerciseInfoId === exerciseInfoId
-                ? { ...e, sets: [...e.sets, { reps: 0 }] }
-                : e
-        ));
-    }
-
-    function removeSetFromPendingExercise(exerciseInfoId: string, setIndex: number) {
-        setPendingExercises(prev => prev.map(e =>
-            e.exerciseInfoId === exerciseInfoId
-                ? { ...e, sets: e.sets.filter((_, i) => i !== setIndex) }
-                : e
-        ));
-    }
-
-    function updateSetReps(exerciseInfoId: string, setIndex: number, value: string) {
-        const reps = parseInt(value) || 0;
-        setPendingExercises(prev => prev.map(e =>
-            e.exerciseInfoId === exerciseInfoId
-                ? { ...e, sets: e.sets.map((s, i) => i === setIndex ? { reps } : s) }
-                : e
-        ));
     }
 
     async function handleAssignGoalToPlan(goal: ExerciseGoal) {
@@ -482,76 +451,15 @@ export default function PlanEditorScreen() {
                                 keyboardShouldPersistTaps="handled"
                                 keyboardDismissMode="interactive"
                             >
-                                <Text style={styles.sectionLabel}>Template Name</Text>
-                                <TextInput
-                                    style={styles.nameInput}
-                                    value={newTemplateName}
-                                    onChangeText={setNewTemplateName}
-                                    placeholder="e.g. Push Day"
-                                    placeholderTextColor={Colors.textSecondary}
+                                <TemplateEditorFields
+                                    name={newTemplateName}
+                                    onNameChange={setNewTemplateName}
+                                    exercises={pendingExercises}
+                                    onExercisesChange={setPendingExercises}
+                                    exerciseInfos={exerciseInfos}
                                 />
-
-                                <Text style={styles.sectionLabel}>Exercises</Text>
-                                {pendingExercises.length === 0 ? (
-                                    <Text style={styles.noTemplatesText}>No exercises added yet.</Text>
-                                ) : (
-                                    pendingExercises.map(pe => (
-                                        <View key={pe.exerciseInfoId} style={styles.pendingExerciseCard}>
-                                            <Text style={styles.pendingExerciseName} numberOfLines={1}>
-                                                {getExerciseName(pe.exerciseInfoId)}
-                                            </Text>
-                                            {pe.sets.map((set, setIndex) => (
-                                                <View key={setIndex} style={styles.setRow}>
-                                                    <Text style={styles.setLabel}>Set {setIndex + 1}</Text>
-                                                    <Text style={styles.repsLabel}>Reps</Text>
-                                                    <TextInput
-                                                        style={styles.repsInput}
-                                                        value={set.reps ? String(set.reps) : ''}
-                                                        onChangeText={v => updateSetReps(pe.exerciseInfoId, setIndex, v)}
-                                                        keyboardType="numeric"
-                                                        placeholder="0"
-                                                        placeholderTextColor={Colors.textSecondary}
-                                                    />
-                                                    {pe.sets.length > 1 && (
-                                                        <Pressable
-                                                            onPress={() => removeSetFromPendingExercise(pe.exerciseInfoId, setIndex)}
-                                                            style={styles.removeSetBtn}
-                                                        >
-                                                            <Text style={styles.removeSetBtnText}>×</Text>
-                                                        </Pressable>
-                                                    )}
-                                                </View>
-                                            ))}
-                                            <Pressable
-                                                onPress={() => addSetToPendingExercise(pe.exerciseInfoId)}
-                                                style={styles.addSetBtn}
-                                            >
-                                                <Text style={styles.addSetBtnText}>+ Add Set</Text>
-                                            </Pressable>
-                                        </View>
-                                    ))
-                                )}
-
-                                <Pressable style={styles.createTemplateBtn} onPress={() => setShowExercisePicker(true)}>
-                                    <Text style={styles.createTemplateBtnText}>+ Add Exercises</Text>
-                                </Pressable>
                             </ScrollView>
                             </KeyboardAvoidingView>
-
-                        <AddExerciseModal
-                            visible={showExercisePicker}
-                            onClose={() => setShowExercisePicker(false)}
-                            onExercisesAdded={async (ids) => {
-                                setPendingExercises(prev => {
-                                    const existingIds = new Set(prev.map(e => e.exerciseInfoId));
-                                    const additions = ids
-                                        .filter(id => !existingIds.has(id))
-                                        .map(id => ({ exerciseInfoId: id, sets: [{ reps: 0 }] }));
-                                    return [...prev, ...additions];
-                                });
-                                setShowExercisePicker(false);
-                            }}
-                        />
                     </FullScreenModal>
             </FullScreenModal>
 
@@ -713,48 +621,11 @@ const styles = StyleSheet.create({
     },
     clearAllBtnText: { color: Colors.error, fontSize: 15 },
     noTemplatesText: { color: Colors.textSecondary, fontSize: 14, marginBottom: 8 },
-    pendingExerciseCard: {
-        backgroundColor: Colors.inputBackground,
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: Colors.border,
-        padding: 12,
-        marginBottom: 10,
-    },
-    pendingExerciseName: { color: Colors.text, fontSize: 15, fontWeight: '600', marginBottom: 8 },
     setRow: {
         flexDirection: 'row',
         alignItems: 'center',
         marginBottom: 6,
     },
-    setLabel: { color: Colors.textSecondary, fontSize: 13, width: 44 },
-    repsLabel: { color: Colors.textSecondary, fontSize: 13, marginRight: 6 },
-    repsInput: {
-        backgroundColor: Colors.background,
-        color: Colors.text,
-        borderRadius: 6,
-        paddingVertical: 5,
-        paddingHorizontal: 8,
-        textAlign: 'center',
-        fontSize: 14,
-        borderWidth: 1,
-        borderColor: Colors.border,
-        width: 56,
-    },
-    removeSetBtn: {
-        marginLeft: 10,
-        padding: 4,
-    },
-    removeSetBtnText: { color: Colors.error, fontSize: 20, lineHeight: 22 },
-    addSetBtn: {
-        marginTop: 6,
-        paddingVertical: 6,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: Colors.border,
-        borderRadius: 6,
-    },
-    addSetBtnText: { color: Colors.primary, fontSize: 13, fontWeight: '500' },
     // Goals section
     noGoalsText: { color: Colors.textSecondary, fontSize: 14, marginBottom: 12 },
     goalRow: {

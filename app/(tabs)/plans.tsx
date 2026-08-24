@@ -15,8 +15,10 @@ import { useActiveWorkout } from '../../src/Hooks/useActiveWorkout';
 import { useNotification } from '../../src/Hooks/useNotification';
 import { WorkoutPlanService } from '../../src/Services/WorkoutPlanService';
 import { ExerciseGoalService } from '../../src/Services/ExerciseGoalService';
+import { WorkoutTemplateService } from '../../src/Services/WorkoutTemplateService';
 import WorkoutPlan from '../../src/Domain/WorkoutPlan';
 import ExerciseGoal from '../../src/Domain/ExerciseGoal';
+import WorkoutTemplate from '../../src/Domain/WorkoutTemplate';
 import AddGoalModal from '../../src/Components/AddGoalModal';
 import { formatDisplayDateFromDate } from '../../src/Utilities/DateUtils';
 import { Colors } from '../../src/Theme/colors';
@@ -24,7 +26,7 @@ import { Colors } from '../../src/Theme/colors';
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 type ViewMode = 'list' | 'calendar';
-type MainTab = 'plans' | 'goals';
+type MainTab = 'plans' | 'goals' | 'templates';
 
 function epley1RM(weight: number, reps: number): number {
     return weight * (1 + reps / 30);
@@ -33,8 +35,10 @@ function epley1RM(weight: number, reps: number): number {
 export default function PlansScreen() {
     const [plans, setPlans] = useState<WorkoutPlan[]>([]);
     const [goals, setGoals] = useState<ExerciseGoal[]>([]);
+    const [templates, setTemplates] = useState<WorkoutTemplate[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadingGoals, setLoadingGoals] = useState(true);
+    const [loadingTemplates, setLoadingTemplates] = useState(true);
     const [mainTab, setMainTab] = useState<MainTab>('plans');
     const [view, setView] = useState<ViewMode>('list');
     const [selectedDayDetail, setSelectedDayDetail] = useState<{ label: string; exercises: string[] } | null>(null);
@@ -59,12 +63,42 @@ export default function PlansScreen() {
             .finally(() => setLoadingGoals(false));
     }, []);
 
+    const loadTemplates = useCallback(() => {
+        WorkoutTemplateService.getTemplates()
+            .then(setTemplates)
+            .catch(() => showError('Failed to load templates'))
+            .finally(() => setLoadingTemplates(false));
+    }, []);
+
     useFocusEffect(useCallback(() => {
         setLoading(true);
         setLoadingGoals(true);
+        setLoadingTemplates(true);
         loadPlans();
         loadGoals();
+        loadTemplates();
     }, []));
+
+    async function handleDeleteTemplate(template: WorkoutTemplate) {
+        Alert.alert(
+            'Delete Template',
+            `Delete "${template.Name}"? Any plan day using it will be cleared.`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete', style: 'destructive', onPress: async () => {
+                        try {
+                            await WorkoutTemplateService.deleteTemplate(template.Id);
+                            setTemplates(prev => prev.filter(t => t.Id !== template.Id));
+                            loadPlans();
+                        } catch {
+                            showError('Failed to delete template');
+                        }
+                    }
+                }
+            ]
+        );
+    }
 
     async function handleDeleteGoal(goal: ExerciseGoal) {
         Alert.alert('Delete Goal', `Delete goal for "${goal.ExerciseInfo.Name}"?`, [
@@ -146,7 +180,7 @@ export default function PlansScreen() {
         });
     }
 
-    if ((mainTab === 'plans' && loading) || (mainTab === 'goals' && loadingGoals)) {
+    if ((mainTab === 'plans' && loading) || (mainTab === 'goals' && loadingGoals) || (mainTab === 'templates' && loadingTemplates)) {
         return (
             <SafeAreaView style={styles.container}>
                 <ActivityIndicator style={{ flex: 1 }} color={Colors.primary} size="large" />
@@ -157,7 +191,9 @@ export default function PlansScreen() {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.title}>{mainTab === 'plans' ? 'Plans' : 'Goals'}</Text>
+                <Text style={styles.title}>
+                    {mainTab === 'plans' ? 'Plans' : mainTab === 'goals' ? 'Goals' : 'Templates'}
+                </Text>
                 <View style={styles.headerRight}>
                     <View style={styles.toggle}>
                         <Pressable
@@ -172,14 +208,26 @@ export default function PlansScreen() {
                         >
                             <Text style={[styles.toggleText, mainTab === 'goals' && styles.toggleTextActive]}>Goals</Text>
                         </Pressable>
+                        <Pressable
+                            style={[styles.toggleBtn, mainTab === 'templates' && styles.toggleBtnActive]}
+                            onPress={() => setMainTab('templates')}
+                        >
+                            <Text style={[styles.toggleText, mainTab === 'templates' && styles.toggleTextActive]}>Templates</Text>
+                        </Pressable>
                     </View>
-                    {mainTab === 'plans' ? (
+                    {mainTab === 'plans' && (
                         <Pressable style={styles.addButton} onPress={() => router.push('/plan/new' as any)}>
                             <Text style={styles.addButtonText}>+ New</Text>
                         </Pressable>
-                    ) : (
+                    )}
+                    {mainTab === 'goals' && (
                         <Pressable style={styles.addButton} onPress={() => setShowAddGoal(true)}>
                             <Text style={styles.addButtonText}>+ Add Goal</Text>
+                        </Pressable>
+                    )}
+                    {mainTab === 'templates' && (
+                        <Pressable style={styles.addButton} onPress={() => router.push('/template/new' as any)}>
+                            <Text style={styles.addButtonText}>+ New</Text>
                         </Pressable>
                     )}
                 </View>
@@ -204,7 +252,53 @@ export default function PlansScreen() {
                 </View>
             )}
 
-            {mainTab === 'goals' ? (
+            {mainTab === 'templates' ? (
+                templates.length === 0 ? (
+                    <View style={styles.emptyState}>
+                        <Text style={styles.emptyText}>No templates yet.</Text>
+                        <Text style={styles.emptySubtext}>
+                            Create a template to reuse a set of exercises across your plans.
+                        </Text>
+                    </View>
+                ) : (
+                    <FlatList
+                        data={templates}
+                        keyExtractor={item => item.Id}
+                        contentContainerStyle={styles.list}
+                        renderItem={({ item }) => (
+                            <View style={styles.planCard}>
+                                <View style={styles.planCardTop}>
+                                    <Text style={styles.planName}>{item.Name}</Text>
+                                </View>
+                                <Text style={styles.planDaysSummary}>
+                                    {item.Exercises.length === 0
+                                        ? 'No exercises'
+                                        : item.Exercises
+                                            .slice(0, 3)
+                                            .map(e => e.ExerciseInfo?.Name ?? 'Exercise')
+                                            .join(', ') +
+                                          (item.Exercises.length > 3 ? ` +${item.Exercises.length - 3} more` : '')
+                                    }
+                                </Text>
+                                <View style={styles.planActions}>
+                                    <Pressable
+                                        style={styles.actionBtn}
+                                        onPress={() => router.push(`/template/${item.Id}` as any)}
+                                    >
+                                        <Text style={styles.actionBtnText}>Edit</Text>
+                                    </Pressable>
+                                    <Pressable
+                                        style={[styles.actionBtn, styles.actionBtnDanger]}
+                                        onPress={() => handleDeleteTemplate(item)}
+                                    >
+                                        <Text style={[styles.actionBtnText, styles.actionBtnDangerText]}>Delete</Text>
+                                    </Pressable>
+                                </View>
+                            </View>
+                        )}
+                    />
+                )
+            ) : mainTab === 'goals' ? (
                 goals.length === 0 ? (
                     <View style={styles.emptyState}>
                         <Text style={styles.emptyText}>No goals yet.</Text>
