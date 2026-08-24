@@ -139,6 +139,7 @@ const AddExerciseModal: React.FC<AddExerciseModalProps> = ({ visible, onClose, o
                         style={styles.list}
                         data={filteredExercises}
                         keyExtractor={item => item.Id || String(item.Key)}
+                        keyboardShouldPersistTaps="handled"
                         renderItem={({ item }) => {
                             const selected = selectedIds.has(item.Id || '');
                             return (

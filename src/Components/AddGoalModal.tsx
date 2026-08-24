@@ -8,6 +8,8 @@ import {
     StyleSheet,
     ActivityIndicator,
     ScrollView,
+    KeyboardAvoidingView,
+    Platform,
 } from 'react-native';
 import FullScreenModal from './FullScreenModal';
 import ExerciseInfo from '../Domain/ExerciseInfo';
@@ -127,7 +129,16 @@ const AddGoalModal: React.FC<AddGoalModalProps> = ({ visible, plans, defaultPlan
                 {loading ? (
                     <ActivityIndicator style={{ flex: 1 }} color={Colors.primary} size="large" />
                 ) : (
-                    <ScrollView contentContainerStyle={styles.content}>
+                    <KeyboardAvoidingView
+                        style={styles.keyboardAvoid}
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    >
+                    <ScrollView
+                        style={styles.scroll}
+                        contentContainerStyle={styles.content}
+                        keyboardShouldPersistTaps="handled"
+                        keyboardDismissMode="interactive"
+                    >
                         <Text style={styles.sectionLabel}>Exercise</Text>
                         <Pressable style={styles.selectInput} onPress={() => setShowExercisePicker(true)}>
                             <Text style={selectedExercise ? styles.selectInputText : styles.selectInputPlaceholder}>
@@ -191,6 +202,7 @@ const AddGoalModal: React.FC<AddGoalModalProps> = ({ visible, plans, defaultPlan
                             placeholderTextColor={Colors.textSecondary}
                         />
                     </ScrollView>
+                    </KeyboardAvoidingView>
                 )}
 
                 {/* Exercise Picker */}
@@ -214,6 +226,7 @@ const AddGoalModal: React.FC<AddGoalModalProps> = ({ visible, plans, defaultPlan
                         <FlatList
                             data={filteredExercises}
                             keyExtractor={item => item.Id || String(item.Key)}
+                            keyboardShouldPersistTaps="handled"
                             renderItem={({ item }) => (
                                 <Pressable
                                     style={styles.pickerRow}
@@ -289,6 +302,8 @@ const styles = StyleSheet.create({
     title: { color: Colors.text, fontSize: 17, fontWeight: '700' },
     cancelText: { color: Colors.primary, fontSize: 16 },
     saveText: { color: Colors.primary, fontSize: 16, fontWeight: '600' },
+    keyboardAvoid: { flex: 1 },
+    scroll: { flex: 1 },
     content: { padding: 16, paddingBottom: 40 },
     sectionLabel: { color: Colors.textSecondary, fontSize: 12, fontWeight: '600', marginBottom: 8, marginTop: 16, textTransform: 'uppercase', letterSpacing: 0.5 },
     input: {

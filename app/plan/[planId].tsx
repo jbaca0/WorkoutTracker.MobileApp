@@ -9,6 +9,8 @@ import {
     ScrollView,
     FlatList,
     Alert,
+    KeyboardAvoidingView,
+    Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -283,7 +285,16 @@ export default function PlanEditorScreen() {
                 </Pressable>
             </View>
 
-            <ScrollView contentContainerStyle={styles.content}>
+            <KeyboardAvoidingView
+                style={styles.keyboardAvoid}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            >
+            <ScrollView
+                style={styles.scroll}
+                contentContainerStyle={styles.content}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="interactive"
+            >
                 <Text style={styles.sectionLabel}>Plan Name</Text>
                 <TextInput
                     style={styles.nameInput}
@@ -366,6 +377,7 @@ export default function PlanEditorScreen() {
                     </>
                 )}
             </ScrollView>
+            </KeyboardAvoidingView>
 
             {/* Day Editor Modal */}
             <FullScreenModal
@@ -384,7 +396,16 @@ export default function PlanEditorScreen() {
                         </Pressable>
                     </View>
 
-                    <ScrollView contentContainerStyle={styles.content}>
+                    <KeyboardAvoidingView
+                        style={styles.keyboardAvoid}
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    >
+                    <ScrollView
+                        style={styles.scroll}
+                        contentContainerStyle={styles.content}
+                        keyboardShouldPersistTaps="handled"
+                        keyboardDismissMode="interactive"
+                    >
                         {editingAssignment?.templateName && (
                             <View style={styles.currentAssignment}>
                                 <Text style={styles.currentAssignmentLabel}>Current: </Text>
@@ -435,6 +456,7 @@ export default function PlanEditorScreen() {
                             </Pressable>
                         )}
                     </ScrollView>
+                    </KeyboardAvoidingView>
 
                     {/* Create Template Modal — nested inside Day Editor so it can stack on top */}
                     <FullScreenModal
@@ -454,7 +476,16 @@ export default function PlanEditorScreen() {
                                 </Pressable>
                             </View>
 
-                            <ScrollView contentContainerStyle={styles.content}>
+                            <KeyboardAvoidingView
+                                style={styles.keyboardAvoid}
+                                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                            >
+                            <ScrollView
+                                style={styles.scroll}
+                                contentContainerStyle={styles.content}
+                                keyboardShouldPersistTaps="handled"
+                                keyboardDismissMode="interactive"
+                            >
                                 <Text style={styles.sectionLabel}>Template Name</Text>
                                 <TextInput
                                     style={styles.nameInput}
@@ -509,6 +540,7 @@ export default function PlanEditorScreen() {
                                     <Text style={styles.createTemplateBtnText}>+ Add Exercises</Text>
                                 </Pressable>
                             </ScrollView>
+                            </KeyboardAvoidingView>
 
                         <AddExerciseModal
                             visible={showExercisePicker}
@@ -547,6 +579,7 @@ export default function PlanEditorScreen() {
                         <FlatList
                             data={unlinkedGoals}
                             keyExtractor={item => item.Id}
+                            keyboardShouldPersistTaps="handled"
                             renderItem={({ item }) => (
                                 <Pressable style={styles.pickerRow} onPress={() => handleAssignGoalToPlan(item)}>
                                     <View style={{ flex: 1 }}>
@@ -594,6 +627,8 @@ const styles = StyleSheet.create({
     headerTitle: { color: Colors.text, fontSize: 17, fontWeight: '700' },
     backText: { color: Colors.primary, fontSize: 16 },
     saveText: { color: Colors.primary, fontSize: 16, fontWeight: '600' },
+    keyboardAvoid: { flex: 1 },
+    scroll: { flex: 1 },
     content: { padding: 16, paddingBottom: 40 },
     sectionLabel: { color: Colors.textSecondary, fontSize: 12, fontWeight: '600', marginBottom: 8, marginTop: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
     nameInput: {
