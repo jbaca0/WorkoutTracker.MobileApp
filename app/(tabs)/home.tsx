@@ -15,6 +15,7 @@ import { WorkoutService } from '../../src/Services/WorkoutService';
 import { WorkoutPlanService } from '../../src/Services/WorkoutPlanService';
 import { WorkoutTemplateService } from '../../src/Services/WorkoutTemplateService';
 import GetTodaysWorkoutResponse from '../../src/DataTransferObjects/Responses/WorkoutPlan/GetTodaysWorkoutResponse';
+import WorkoutPlan from '../../src/Domain/WorkoutPlan';
 import { Colors } from '../../src/Theme/colors';
 
 export default function HomeScreen() {
@@ -24,15 +25,23 @@ export default function HomeScreen() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [todaysWorkout, setTodaysWorkout] = useState<GetTodaysWorkoutResponse | null>(null);
+    const [plans, setPlans] = useState<WorkoutPlan[]>([]);
     const [startingScheduled, setStartingScheduled] = useState(false);
 
     useFocusEffect(
         useCallback(() => {
             if (!hasActiveWorkout) {
                 WorkoutPlanService.getTodaysWorkout().then(setTodaysWorkout);
+                WorkoutPlanService.getWorkoutPlans().then(setPlans).catch(() => {});
             }
         }, [hasActiveWorkout])
     );
+
+    const hasActivePlan = plans.some(p => p.IsActive);
+    const hasPlansButNoneActive = plans.length > 0 && !hasActivePlan;
+    // An active plan with nothing scheduled for today: no template and no note.
+    const nothingScheduledToday =
+        hasActivePlan && !todaysWorkout?.template && !todaysWorkout?.note;
 
     async function handleStartScheduledWorkout() {
         if (!todaysWorkout?.template) return;
@@ -107,6 +116,29 @@ export default function HomeScreen() {
                     <View style={styles.restCard}>
                         <Text style={styles.restLabel}>Today</Text>
                         <Text style={styles.restNote}>{todaysWorkout.note}</Text>
+                    </View>
+                )}
+
+                {!hasActiveWorkout && hasPlansButNoneActive && (
+                    <View style={styles.infoCard}>
+                        <Text style={styles.infoLabel}>No Active Plan</Text>
+                        <Text style={styles.infoText}>
+                            You have {plans.length === 1 ? 'a plan' : `${plans.length} plans`}, but none is
+                            set as active. Set one active to see its workout here each day.
+                        </Text>
+                        <Pressable
+                            style={styles.infoButton}
+                            onPress={() => router.navigate('/(tabs)/plans')}
+                        >
+                            <Text style={styles.infoButtonText}>Choose a Plan</Text>
+                        </Pressable>
+                    </View>
+                )}
+
+                {!hasActiveWorkout && nothingScheduledToday && (
+                    <View style={styles.restCard}>
+                        <Text style={styles.restLabel}>Today</Text>
+                        <Text style={styles.restNote}>Nothing scheduled</Text>
                     </View>
                 )}
 
@@ -208,6 +240,40 @@ const styles = StyleSheet.create({
         color: Colors.textSecondary,
         fontSize: 13,
         marginTop: 2,
+    },
+    infoCard: {
+        backgroundColor: Colors.surface,
+        borderRadius: 14,
+        padding: 18,
+        width: '100%',
+        borderWidth: 1,
+        borderColor: Colors.border,
+    },
+    infoLabel: {
+        color: Colors.textSecondary,
+        fontSize: 12,
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        letterSpacing: 0.8,
+        marginBottom: 6,
+    },
+    infoText: {
+        color: Colors.text,
+        fontSize: 15,
+        lineHeight: 21,
+        marginBottom: 14,
+    },
+    infoButton: {
+        borderWidth: 1,
+        borderColor: Colors.primary,
+        borderRadius: 10,
+        paddingVertical: 11,
+        alignItems: 'center',
+    },
+    infoButtonText: {
+        color: Colors.primary,
+        fontSize: 15,
+        fontWeight: '600',
     },
     restCard: {
         backgroundColor: Colors.surface,
