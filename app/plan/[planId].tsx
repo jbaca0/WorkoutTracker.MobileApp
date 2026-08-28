@@ -76,6 +76,9 @@ export default function PlanEditorScreen() {
         ExerciseInfoService.getExerciseInfos().then(setExerciseInfos).catch(() => {});
         WorkoutPlanService.getWorkoutPlans().then(setPlans).catch(() => {});
 
+        // Available goals are needed for the picker whether the plan is new or not.
+        ExerciseGoalService.getGoals().then(setAllGoals).catch(() => {});
+
         if (!isNew) {
             WorkoutPlanService.getWorkoutPlans().then(allPlans => {
                 const plan = allPlans.find(p => p.Id === planId);
@@ -93,9 +96,7 @@ export default function PlanEditorScreen() {
             }).catch(() => showError('Failed to load plan'))
               .finally(() => setLoading(false));
 
-            // Load goals for this plan and all user goals (for the picker)
             ExerciseGoalService.getGoalsByPlan(planId).then(setPlanGoals).catch(() => {});
-            ExerciseGoalService.getGoals().then(setAllGoals).catch(() => {});
         }
     }, [planId]);
 
@@ -150,6 +151,13 @@ export default function PlanEditorScreen() {
     }
 
     async function handleAssignGoalToPlan(goal: ExerciseGoal) {
+        // A new plan has no id yet, so hold the selection and link it on save.
+        if (isNew) {
+            setPlanGoals(prev => [...prev, goal]);
+            setShowGoalPicker(false);
+            return;
+        }
+
         try {
             await ExerciseGoalService.assignGoalToPlan(goal.Id, { workoutPlanId: planId });
             const updated = { ...goal, WorkoutPlanId: planId } as ExerciseGoal;
@@ -162,6 +170,11 @@ export default function PlanEditorScreen() {
     }
 
     async function handleUnlinkGoal(goal: ExerciseGoal) {
+        if (isNew) {
+            setPlanGoals(prev => prev.filter(g => g.Id !== goal.Id));
+            return;
+        }
+
         try {
             await ExerciseGoalService.assignGoalToPlan(goal.Id, { workoutPlanId: undefined });
             setPlanGoals(prev => prev.filter(g => g.Id !== goal.Id));
@@ -212,7 +225,21 @@ export default function PlanEditorScreen() {
         }));
         try {
             if (isNew) {
-                await WorkoutPlanService.addWorkoutPlan(name.trim(), startDate.trim(), endDate.trim() || undefined, dayRequests);
+                const newPlanId = await WorkoutPlanService.addWorkoutPlan(
+                    name.trim(), startDate.trim(), endDate.trim() || undefined, dayRequests);
+
+                // Goals chosen while the plan did not exist yet are linked now.
+                if (planGoals.length > 0) {
+                    try {
+                        await Promise.all(planGoals.map(goal =>
+                            ExerciseGoalService.assignGoalToPlan(goal.Id, { workoutPlanId: newPlanId })
+                        ));
+                    } catch {
+                        // The plan itself saved, so report the partial failure
+                        // rather than making it look like nothing was saved.
+                        showError('Plan saved, but some goals could not be linked.');
+                    }
+                }
             } else {
                 await WorkoutPlanService.updateWorkoutPlan(planId, name.trim(), startDate.trim(), endDate.trim() || undefined, dayRequests);
             }
@@ -235,7 +262,15 @@ export default function PlanEditorScreen() {
     const editingAssignment = editingDow !== null ? getDayAssignment(editingDow) : undefined;
     const currentPlan = plans.find(p => p.Id === planId);
     // Goals not already linked to this plan, available to assign
-    const unlinkedGoals = allGoals.filter(g => g.WorkoutPlanId !== planId);
+    // Anything already shown under Goals is unavailable; this covers both the
+    // saved links of an existing plan and the pending picks of a new one.
+    const linkedGoalIds = new Set(planGoals.map(g => g.Id));
+    const availableGoals = allGoals.filter(g => !linkedGoalIds.has(g.Id));
+
+    function otherPlanName(goal: ExerciseGoal): string | undefined {
+        if (!goal.WorkoutPlanId || goal.WorkoutPlanId === planId) return undefined;
+        return plans.find(p => p.Id === goal.WorkoutPlanId)?.Name;
+    }
 
     return (
         <SafeAreaView style={styles.container}>
@@ -310,37 +345,38 @@ export default function PlanEditorScreen() {
                     );
                 })}
 
-                {/* Goals section — only for existing plans */}
-                {!isNew && (
-                    <>
-                        <Text style={[styles.sectionLabel, { marginTop: 28 }]}>Goals</Text>
-                        {planGoals.length === 0 ? (
-                            <Text style={styles.noGoalsText}>No goals linked to this plan.</Text>
-                        ) : (
-                            planGoals.map(goal => (
-                                <View key={goal.Id} style={styles.goalRow}>
-                                    <View style={styles.goalInfo}>
-                                        <Text style={styles.goalName}>{goal.ExerciseInfo.Name}</Text>
-                                        <Text style={styles.goalTarget}>
-                                            {goal.TargetWeight} lbs × {goal.TargetReps} rep{goal.TargetReps !== 1 ? 's' : ''} by {formatDisplayDateFromDate(goal.GoalDate)}
-                                        </Text>
-                                    </View>
-                                    <Pressable onPress={() => handleUnlinkGoal(goal)} style={styles.unlinkBtn}>
-                                        <Text style={styles.unlinkBtnText}>Unlink</Text>
-                                    </Pressable>
-                                </View>
-                            ))
-                        )}
-                        <View style={styles.goalActions}>
-                            <Pressable style={styles.goalActionBtn} onPress={() => setShowGoalPicker(true)}>
-                                <Text style={styles.goalActionBtnText}>Assign Existing Goal</Text>
-                            </Pressable>
-                            <Pressable style={styles.goalActionBtn} onPress={() => setShowAddGoalModal(true)}>
-                                <Text style={styles.goalActionBtnText}>+ New Goal</Text>
+                {/* Goals section */}
+                <Text style={[styles.sectionLabel, { marginTop: 28 }]}>Goals</Text>
+                {isNew && (
+                    <Text style={styles.noGoalsText}>
+                        Goals you add here are linked when you save the plan.
+                    </Text>
+                )}
+                {planGoals.length === 0 ? (
+                    isNew ? null : <Text style={styles.noGoalsText}>No goals linked to this plan.</Text>
+                ) : (
+                    planGoals.map(goal => (
+                        <View key={goal.Id} style={styles.goalRow}>
+                            <View style={styles.goalInfo}>
+                                <Text style={styles.goalName}>{goal.ExerciseInfo.Name}</Text>
+                                <Text style={styles.goalTarget}>
+                                    {goal.TargetWeight} lbs × {goal.TargetReps} rep{goal.TargetReps !== 1 ? 's' : ''} by {formatDisplayDateFromDate(goal.GoalDate)}
+                                </Text>
+                            </View>
+                            <Pressable onPress={() => handleUnlinkGoal(goal)} style={styles.unlinkBtn}>
+                                <Text style={styles.unlinkBtnText}>Unlink</Text>
                             </Pressable>
                         </View>
-                    </>
+                    ))
                 )}
+                <View style={styles.goalActions}>
+                    <Pressable style={styles.goalActionBtn} onPress={() => setShowGoalPicker(true)}>
+                        <Text style={styles.goalActionBtnText}>Assign Existing Goal</Text>
+                    </Pressable>
+                    <Pressable style={styles.goalActionBtn} onPress={() => setShowAddGoalModal(true)}>
+                        <Text style={styles.goalActionBtnText}>+ New Goal</Text>
+                    </Pressable>
+                </View>
             </ScrollView>
             </KeyboardAvoidingView>
 
@@ -475,13 +511,13 @@ export default function PlanEditorScreen() {
                         <Text style={styles.headerTitle}>Assign Goal</Text>
                         <View style={{ width: 60 }} />
                     </View>
-                    {unlinkedGoals.length === 0 ? (
+                    {availableGoals.length === 0 ? (
                         <View style={{ padding: 24 }}>
-                            <Text style={styles.noGoalsText}>No unassigned goals available.</Text>
+                            <Text style={styles.noGoalsText}>No other goals available.</Text>
                         </View>
                     ) : (
                         <FlatList
-                            data={unlinkedGoals}
+                            data={availableGoals}
                             keyExtractor={item => item.Id}
                             keyboardShouldPersistTaps="handled"
                             renderItem={({ item }) => (
@@ -490,6 +526,7 @@ export default function PlanEditorScreen() {
                                         <Text style={styles.pickerRowText}>{item.ExerciseInfo.Name}</Text>
                                         <Text style={styles.pickerRowSub}>
                                             {item.TargetWeight} lbs × {item.TargetReps} rep{item.TargetReps !== 1 ? 's' : ''}
+                                            {otherPlanName(item) ? ` · currently on ${otherPlanName(item)}` : ''}
                                         </Text>
                                     </View>
                                     <Text style={styles.pickerRowChevron}>›</Text>
@@ -506,10 +543,12 @@ export default function PlanEditorScreen() {
                 defaultPlan={currentPlan}
                 onClose={() => setShowAddGoalModal(false)}
                 onGoalAdded={async (goal) => {
-                    if (goal.WorkoutPlanId === planId) {
+                    setAllGoals(prev => [...prev, goal]);
+                    // On a new plan the goal has no plan yet, so hold it for save
+                    // unless the user explicitly picked a different plan.
+                    if (goal.WorkoutPlanId === planId || (isNew && !goal.WorkoutPlanId)) {
                         setPlanGoals(prev => [...prev, goal]);
                     }
-                    setAllGoals(prev => [...prev, goal]);
                     setShowAddGoalModal(false);
                 }}
             />
