@@ -73,8 +73,12 @@ export default function TemplateEditorScreen() {
                 await WorkoutTemplateService.updateTemplate(templateId, name.trim(), exercises);
             }
             router.back();
-        } catch {
-            showError('Failed to save template');
+        } catch (error) {
+            // Surface the server's reason; a bare "failed to save" gives nothing
+            // to act on when the request is rejected.
+            const detail = error instanceof Error ? error.message : String(error);
+            console.error('Template save failed:', detail);
+            showError(detail ? `Failed to save template. ${detail.slice(0, 300)}` : 'Failed to save template');
         } finally {
             setSaving(false);
         }
