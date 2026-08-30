@@ -29,6 +29,7 @@ import { Colors } from '../../src/Theme/colors';
 import AddGoalModal from '../../src/Components/AddGoalModal';
 import FullScreenModal from '../../src/Components/FullScreenModal';
 import DateField from '../../src/Components/DateField';
+import TemplateEditorFields from '../../src/Components/TemplateEditorFields';
 import { toDateInputString, formatDisplayDateFromDate } from '../../src/Utilities/DateUtils';
 
 const ORDERED_DAYS = [1, 2, 3, 4, 5, 6, 0]; // Mon–Sun
