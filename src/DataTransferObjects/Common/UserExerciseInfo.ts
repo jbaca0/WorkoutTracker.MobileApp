@@ -1,8 +1,10 @@
-import Exercise from "./Exercise";
 import ExerciseInfo from "./ExerciseInfo";
+import ExerciseTarget from "./ExerciseTarget";
 
 class UserExerciseInfo {
     public exerciseInfo!: ExerciseInfo;
-    public latestExercise!: Exercise;
+    public bestSetWeight?: number;
+    public bestSetReps?: number;
+    public target?: ExerciseTarget;
 }
 export default UserExerciseInfo;

@@ -7,6 +7,7 @@ class Set {
     public Reps?: number;
     public Weight?: number;
     public Completed: boolean;
+    public Order?: number;
 
     constructor(data?: Partial<Set>) {
         this.Id = data?.Id;
@@ -14,6 +15,7 @@ class Set {
         this.Reps = data?.Reps;
         this.Weight = data?.Weight;
         this.Completed = data?.Completed || false;
+        this.Order = data?.Order;
     }
 
     public ToData(): SetData {
@@ -21,7 +23,8 @@ class Set {
             id: this.Id,
             reps: this.Reps,
             weight: this.Weight,
-            completed: this.Completed
+            completed: this.Completed,
+            order: this.Order
         };
     }
 }

@@ -27,8 +27,8 @@ export class WorkoutService extends BaseService {
             .map(e => UserExerciseInfo.FromData(e))
             .map(e => new Exercise({
                 ExerciseInfo: e.ExerciseInfo,
-                PreviousExercise: e.LatestExercise,
-                Sets: e.LatestExercise?.Sets.map(() => new Set()) ?? []
+                Sets: e.Target?.Sets.map((_, i) => new Set({ Order: i + 1 })) ?? [],
+                Target: e.Target
             }));
     }
 

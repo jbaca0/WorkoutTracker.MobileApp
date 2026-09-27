@@ -9,7 +9,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { useActiveWorkout } from '../../src/Hooks/useActiveWorkout';
 import { useNotification } from '../../src/Hooks/useNotification';
 import { WorkoutService } from '../../src/Services/WorkoutService';
 import WorkoutSummary from '../../src/Domain/WorkoutSummary';
@@ -19,7 +18,6 @@ export default function HistoryScreen() {
     const [workouts, setWorkouts] = useState<WorkoutSummary[]>([]);
     const [loading, setLoading] = useState(true);
     const { showError } = useNotification();
-    const { hasActiveWorkout, activeWorkoutId } = useActiveWorkout();
     const router = useRouter();
 
     useEffect(() => {
@@ -91,14 +89,6 @@ export default function HistoryScreen() {
                 />
             )}
 
-            {hasActiveWorkout && (
-                <Pressable
-                    style={styles.fab}
-                    onPress={() => router.push(`/workout/${activeWorkoutId}`)}
-                >
-                    <Text style={styles.fabText}>🏋️</Text>
-                </Pressable>
-            )}
         </SafeAreaView>
     );
 }
@@ -184,24 +174,5 @@ const styles = StyleSheet.create({
     emptySubtext: {
         color: Colors.textSecondary,
         fontSize: 14,
-    },
-    fab: {
-        position: 'absolute',
-        right: 16,
-        bottom: 80,
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        backgroundColor: Colors.primary,
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.4,
-        shadowRadius: 6,
-        elevation: 8,
-    },
-    fabText: {
-        fontSize: 24,
     },
 });

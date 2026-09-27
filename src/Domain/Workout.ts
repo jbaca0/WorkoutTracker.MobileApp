@@ -1,5 +1,6 @@
 import Exercise from "./Exercise";
 import ExerciseInfo from "./ExerciseInfo";
+import ExerciseTarget from "./ExerciseTarget";
 import Set from "./Set";
 import WorkoutData from "../DataTransferObjects/Common/Workout";
 
@@ -24,13 +25,7 @@ class Workout {
                     Id: e.exerciseInfo.id,
                     Name: e.exerciseInfo.name
                 }) : undefined,
-                PreviousExercise: e.previousExercise ? new Exercise({
-                    ExerciseInfoId: e.previousExercise.exerciseInfoId,
-                    Sets: e.previousExercise.sets?.map(s => new Set({
-                        Reps: s.reps,
-                        Weight: s.weight
-                    })) || []
-                }) : undefined,
+                Target: e.target ? ExerciseTarget.FromData(e.target) : undefined,
                 Sets: e.sets?.map(s => new Set({
                     Id: s.id,
                     Reps: s.reps,

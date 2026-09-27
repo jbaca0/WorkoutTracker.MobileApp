@@ -8,7 +8,6 @@ import {
     TextInput,
     StyleSheet,
     ActivityIndicator,
-    SafeAreaView,
     ScrollView,
 } from 'react-native';
 import ExerciseInfo from '../Domain/ExerciseInfo';
@@ -16,6 +15,7 @@ import { ExerciseInfoService } from '../Services/ExerciseInfoService';
 import { MuscleGroup, MuscleGroupLabels, AllMuscleGroups } from '../Enums/MuscleGroup';
 import { Colors } from '../Theme/colors';
 import { useNotification } from '../Hooks/useNotification';
+import FullScreenModal from './FullScreenModal';
 
 interface AddExerciseModalProps {
     visible: boolean;
@@ -76,8 +76,7 @@ const AddExerciseModal: React.FC<AddExerciseModalProps> = ({ visible, onClose, o
     }
 
     return (
-        <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleClose}>
-            <SafeAreaView style={styles.container}>
+        <FullScreenModal visible={visible} onRequestClose={handleClose}>
                 <View style={styles.header}>
                     <Text style={styles.title}>Add Exercises</Text>
                     <Pressable onPress={handleClose}>
@@ -140,6 +139,7 @@ const AddExerciseModal: React.FC<AddExerciseModalProps> = ({ visible, onClose, o
                         style={styles.list}
                         data={filteredExercises}
                         keyExtractor={item => item.Id || String(item.Key)}
+                        keyboardShouldPersistTaps="handled"
                         renderItem={({ item }) => {
                             const selected = selectedIds.has(item.Id || '');
                             return (
@@ -175,8 +175,7 @@ const AddExerciseModal: React.FC<AddExerciseModalProps> = ({ visible, onClose, o
                         }
                     </Pressable>
                 </View>
-            </SafeAreaView>
-        </Modal>
+        </FullScreenModal>
     );
 };
 
