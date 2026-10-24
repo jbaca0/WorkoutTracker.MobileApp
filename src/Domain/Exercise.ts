@@ -1,6 +1,7 @@
 import ExerciseInfo from './ExerciseInfo';
 import Set from './Set';
 import ExerciseData from '../DataTransferObjects/Common/Exercise';
+import ExerciseTarget from './ExerciseTarget';
 import KeyGenerator from '../Utilities/KeyGenerator';
 
 class Exercise {
@@ -9,15 +10,15 @@ class Exercise {
     public Key: number;
     public ExerciseInfoId: string;
     public ExerciseInfo?: ExerciseInfo;
-    public PreviousExercise?: Exercise;
     public Sets: Set[];
+    public Target?: ExerciseTarget;
 
     constructor(data?: Partial<Exercise>) {
         this.Id = data?.Id;
         this.Key = data?.Key || KeyGenerator.GenerateKey();
         this.ExerciseInfo = data?.ExerciseInfo;
-        this.PreviousExercise = data?.PreviousExercise;
         this.Sets = data?.Sets || [];
+        this.Target = data?.Target;
 
         const id = data?.ExerciseInfoId || data?.ExerciseInfo?.Id;
         if (!id) throw new Error("Unable to resolve ExerciseInfoId when constructing Exercise");
@@ -31,7 +32,8 @@ class Exercise {
             Sets: exerciseData.sets
                 ?.slice()
                 .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-                .map(s => new Set({ Reps: s.reps, Weight: s.weight, Order: s.order })) ?? []
+                .map(s => new Set({ Reps: s.reps, Weight: s.weight, Order: s.order })) ?? [],
+            Target: exerciseData.target ? ExerciseTarget.FromData(exerciseData.target) : undefined
         })
     }
 
@@ -44,7 +46,8 @@ class Exercise {
                 reps: set.Reps,
                 weight: set.Weight,
                 completed: set.Completed
-            }))
+            })),
+            target: this.Target?.ToData()
         };
     }
 }

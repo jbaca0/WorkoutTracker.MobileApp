@@ -14,13 +14,17 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AddExerciseModal from '../../src/Components/AddExerciseModal';
 import ExerciseComponent from '../../src/Components/ExerciseComponent';
+import RestTimer from '../../src/Components/RestTimer';
 import Exercise from '../../src/Domain/Exercise';
 import Workout from '../../src/Domain/Workout';
 import { useActiveWorkout } from '../../src/Hooks/useActiveWorkout';
+import useAsyncStorage from '../../src/Hooks/useAsyncStorage';
 import useDebounce from '../../src/Hooks/useDebounce';
 import { useNotification } from '../../src/Hooks/useNotification';
+import useRestTimer from '../../src/Hooks/useRestTimer';
 import { WorkoutService } from '../../src/Services/WorkoutService';
 import { Colors } from '../../src/Theme/colors';
+import { playRestCompleteAlert } from '../../src/Utilities/sound';
 import { generateWorkoutTitle } from '../../src/Utilities/WorkoutTitleGenerator';
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
@@ -44,6 +48,15 @@ export default function WorkoutScreen() {
     const initialLoadComplete = useRef(false);
     const saveStatusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const debouncedExercises = useDebounce(exercises, 3000);
+
+    // Rest timer: presets set the default duration (persisted locally); ±15s only adjusts the current rest.
+    const [restDuration, , setRestDuration] = useAsyncStorage<number>('restTimerDuration', 90);
+    const restTimer = useRestTimer(playRestCompleteAlert);
+
+    function handleRestPreset(seconds: number) {
+        setRestDuration(seconds);
+        restTimer.start(seconds);
+    }
 
     useEffect(() => {
         if (!workoutId) return;
@@ -167,6 +180,7 @@ export default function WorkoutScreen() {
                             key={exercise.Key}
                             exercise={exercise}
                             onChange={onExerciseChange}
+                            onSetCompleted={() => restTimer.start(restDuration)}
                         />
                     ))}
 
@@ -205,6 +219,17 @@ export default function WorkoutScreen() {
                         </Pressable>
                     </View>
                 </ScrollView>
+
+                {restTimer.isRunning && (
+                    <RestTimer
+                        secondsRemaining={restTimer.secondsRemaining}
+                        totalSeconds={restTimer.totalSeconds}
+                        selectedPresetSeconds={restDuration}
+                        onAddTime={restTimer.addTime}
+                        onSelectPreset={handleRestPreset}
+                        onSkip={restTimer.skip}
+                    />
+                )}
             </KeyboardAvoidingView>
 
             <AddExerciseModal

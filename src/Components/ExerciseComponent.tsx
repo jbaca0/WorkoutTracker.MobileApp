@@ -2,14 +2,16 @@ import React from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, ScrollView } from 'react-native';
 import Exercise from '../Domain/Exercise';
 import Set from '../Domain/Set';
+import { TargetSource } from '../Enums/TargetSource';
 import { Colors } from '../Theme/colors';
 
 interface ExerciseProps {
     exercise: Exercise;
     onChange: (exercise: Exercise) => void;
+    onSetCompleted?: () => void;
 }
 
-const ExerciseComponent: React.FC<ExerciseProps> = ({ exercise, onChange }) => {
+const ExerciseComponent: React.FC<ExerciseProps> = ({ exercise, onChange, onSetCompleted }) => {
     function handleAddSet() {
         const updatedExercise = new Exercise({
             ...exercise,
@@ -48,9 +50,15 @@ const ExerciseComponent: React.FC<ExerciseProps> = ({ exercise, onChange }) => {
             )
         });
         onChange(updatedExercise);
+        // Start the rest timer only when a set is being marked complete.
+        if (value) {
+            onSetCompleted?.();
+        }
     }
 
-    const hasPrevious = !!exercise.PreviousExercise;
+    const target = exercise.Target;
+    const hasTarget = !!target && target.Sets.length > 0;
+    const targetLabel = target?.Type === TargetSource.Plan ? '🎯 Goal' : 'Previous';
 
     return (
         <View style={styles.card}>
@@ -66,7 +74,7 @@ const ExerciseComponent: React.FC<ExerciseProps> = ({ exercise, onChange }) => {
                     {/* Header row */}
                     <View style={styles.tableRow}>
                         <Text style={[styles.tableHeader, styles.colSet]}>Set</Text>
-                        {hasPrevious && <Text style={[styles.tableHeader, styles.colPrev]}>Previous</Text>}
+                        {hasTarget && <Text style={[styles.tableHeader, styles.colPrev]}>{targetLabel}</Text>}
                         <Text style={[styles.tableHeader, styles.colInput]}>Weight</Text>
                         <Text style={[styles.tableHeader, styles.colInput]}>Reps</Text>
                         <Text style={[styles.tableHeader, styles.colCheck]}>✓</Text>
@@ -78,10 +86,10 @@ const ExerciseComponent: React.FC<ExerciseProps> = ({ exercise, onChange }) => {
                             style={[styles.tableRow, set.Completed && styles.tableRowCompleted]}
                         >
                             <Text style={[styles.tableCell, styles.colSet]}>{index + 1}</Text>
-                            {hasPrevious && (
+                            {hasTarget && (
                                 <Text style={[styles.tableCell, styles.colPrev, styles.prevText]}>
-                                    {exercise.PreviousExercise!.Sets[index]
-                                        ? `${exercise.PreviousExercise!.Sets[index].Weight ?? '—'} × ${exercise.PreviousExercise!.Sets[index].Reps ?? '—'}`
+                                    {target!.Sets[index]
+                                        ? `${target!.Sets[index].Weight ?? '—'} × ${target!.Sets[index].Reps ?? '—'}`
                                         : '—'}
                                 </Text>
                             )}
@@ -105,6 +113,8 @@ const ExerciseComponent: React.FC<ExerciseProps> = ({ exercise, onChange }) => {
                             />
                             <Pressable
                                 style={[styles.checkbox, set.Completed && styles.checkboxChecked]}
+                                accessibilityRole="checkbox"
+                                accessibilityState={{ checked: set.Completed }}
                                 onPress={() => handleSetCompletedChanged(set.Key, !set.Completed)}
                             >
                                 {set.Completed && <Text style={styles.checkmark}>✓</Text>}
