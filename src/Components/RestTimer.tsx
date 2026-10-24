@@ -6,8 +6,10 @@ const PRESETS = [60, 90, 120];
 
 interface RestTimerProps {
     secondsRemaining: number;
-    /** The full duration the countdown started from, used for the progress bar and preset highlight. */
-    durationSeconds: number;
+    /** Full length of the current countdown, used for the progress bar. */
+    totalSeconds: number;
+    /** The saved default rest duration, highlighted among the presets. */
+    selectedPresetSeconds: number;
     onAddTime: (deltaSeconds: number) => void;
     onSelectPreset: (seconds: number) => void;
     onSkip: () => void;
@@ -21,13 +23,14 @@ function formatTime(totalSeconds: number): string {
 
 const RestTimer: React.FC<RestTimerProps> = ({
     secondsRemaining,
-    durationSeconds,
+    totalSeconds,
+    selectedPresetSeconds,
     onAddTime,
     onSelectPreset,
     onSkip,
 }) => {
-    const progress = durationSeconds > 0
-        ? Math.max(0, Math.min(1, secondsRemaining / durationSeconds))
+    const progress = totalSeconds > 0
+        ? Math.max(0, Math.min(1, secondsRemaining / totalSeconds))
         : 0;
 
     return (
@@ -51,7 +54,7 @@ const RestTimer: React.FC<RestTimerProps> = ({
 
                 <View style={styles.presets}>
                     {PRESETS.map(seconds => {
-                        const active = seconds === durationSeconds;
+                        const active = seconds === selectedPresetSeconds;
                         return (
                             <Pressable
                                 key={seconds}

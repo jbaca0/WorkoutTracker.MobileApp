@@ -105,6 +105,22 @@ describe('rest timer on the workout screen', () => {
         expect(mockHaptic).toHaveBeenCalledTimes(1);
     });
 
+    it('adjusts only the current rest with ±15s, leaving the default unchanged', async () => {
+        await renderScreen();
+        fireEvent.press(screen.getAllByRole('checkbox')[0]);
+        fireEvent.press(screen.getByText('+15s'));
+        expect(screen.getByText('1:45')).toBeTruthy();
+
+        fireEvent.press(screen.getByText('−15s'));
+        fireEvent.press(screen.getByText('−15s'));
+        expect(screen.getByText('1:15')).toBeTruthy();
+        fireEvent.press(screen.getByText('Skip'));
+
+        fireEvent.press(screen.getAllByRole('checkbox')[1]);
+        expect(screen.getByText('1:30')).toBeTruthy();
+        expect(await AsyncStorage.getItem('restTimerDuration')).toBeNull();
+    });
+
     it('remembers the chosen preset for the next set', async () => {
         await renderScreen();
         fireEvent.press(screen.getAllByRole('checkbox')[0]);

@@ -27,8 +27,6 @@ import { Colors } from '../../src/Theme/colors';
 import { playRestCompleteAlert } from '../../src/Utilities/sound';
 import { generateWorkoutTitle } from '../../src/Utilities/WorkoutTitleGenerator';
 
-const MIN_REST_SECONDS = 15;
-
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 export default function WorkoutScreen() {
@@ -51,14 +49,9 @@ export default function WorkoutScreen() {
     const saveStatusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const debouncedExercises = useDebounce(exercises, 3000);
 
-    // Rest timer: duration defaults to the last value the user used (persisted locally).
+    // Rest timer: presets set the default duration (persisted locally); ±15s only adjusts the current rest.
     const [restDuration, , setRestDuration] = useAsyncStorage<number>('restTimerDuration', 90);
     const restTimer = useRestTimer(playRestCompleteAlert);
-
-    function handleRestAdjust(deltaSeconds: number) {
-        restTimer.addTime(deltaSeconds);
-        setRestDuration(Math.max(MIN_REST_SECONDS, restDuration + deltaSeconds));
-    }
 
     function handleRestPreset(seconds: number) {
         setRestDuration(seconds);
@@ -230,8 +223,9 @@ export default function WorkoutScreen() {
                 {restTimer.isRunning && (
                     <RestTimer
                         secondsRemaining={restTimer.secondsRemaining}
-                        durationSeconds={restDuration}
-                        onAddTime={handleRestAdjust}
+                        totalSeconds={restTimer.totalSeconds}
+                        selectedPresetSeconds={restDuration}
+                        onAddTime={restTimer.addTime}
                         onSelectPreset={handleRestPreset}
                         onSkip={restTimer.skip}
                     />

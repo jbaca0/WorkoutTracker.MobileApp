@@ -29,6 +29,21 @@ describe('useRestTimer', () => {
         expect(result.current.secondsRemaining).toBe(23);
     });
 
+    it('tracks the full countdown length, including adjustments', () => {
+        const { result } = renderHook(() => useRestTimer(jest.fn()));
+        act(() => result.current.start(60));
+        expect(result.current.totalSeconds).toBe(60);
+
+        act(() => result.current.addTime(15));
+        expect(result.current.totalSeconds).toBe(75);
+
+        act(() => result.current.addTime(-30));
+        expect(result.current.totalSeconds).toBe(45);
+
+        act(() => result.current.skip());
+        expect(result.current.totalSeconds).toBe(0);
+    });
+
     it('subtracts with a negative addTime, clamped at zero', () => {
         const { result } = renderHook(() => useRestTimer(jest.fn()));
         act(() => result.current.start(10));

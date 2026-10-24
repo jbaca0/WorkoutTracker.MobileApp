@@ -5,6 +5,8 @@ const TICK_MS = 250;
 export interface RestTimer {
     /** Whole seconds left on the current countdown. */
     secondsRemaining: number;
+    /** Full length of the current countdown, including any addTime adjustments. */
+    totalSeconds: number;
     /** True while a countdown is active (not yet finished or skipped). */
     isRunning: boolean;
     /** Start (or restart) a countdown for the given number of seconds. */
@@ -22,6 +24,7 @@ export interface RestTimer {
  */
 export default function useRestTimer(onComplete: () => void): RestTimer {
     const [secondsRemaining, setSecondsRemaining] = useState(0);
+    const [totalSeconds, setTotalSeconds] = useState(0);
     const [isRunning, setIsRunning] = useState(false);
 
     const endAtRef = useRef<number | null>(null);
@@ -45,6 +48,7 @@ export default function useRestTimer(onComplete: () => void): RestTimer {
         endAtRef.current = null;
         setIsRunning(false);
         setSecondsRemaining(0);
+        setTotalSeconds(0);
         onCompleteRef.current();
     }, [clearTicker]);
 
@@ -68,6 +72,7 @@ export default function useRestTimer(onComplete: () => void): RestTimer {
         if (durationSeconds <= 0) return;
         endAtRef.current = Date.now() + durationSeconds * 1000;
         setSecondsRemaining(durationSeconds);
+        setTotalSeconds(durationSeconds);
         setIsRunning(true);
         ensureTicker();
     }, [ensureTicker]);
@@ -77,17 +82,20 @@ export default function useRestTimer(onComplete: () => void): RestTimer {
         endAtRef.current = null;
         setIsRunning(false);
         setSecondsRemaining(0);
+        setTotalSeconds(0);
     }, [clearTicker]);
 
     const addTime = useCallback((deltaSeconds: number) => {
         if (endAtRef.current === null) return;
         const msLeft = Math.max(0, endAtRef.current - Date.now() + deltaSeconds * 1000);
         endAtRef.current = Date.now() + msLeft;
-        setSecondsRemaining(Math.ceil(msLeft / 1000));
+        const remaining = Math.ceil(msLeft / 1000);
+        setSecondsRemaining(remaining);
+        setTotalSeconds(total => Math.max(remaining, total + deltaSeconds));
     }, []);
 
     // Clean up on unmount.
     useEffect(() => clearTicker, [clearTicker]);
 
-    return { secondsRemaining, isRunning, start, skip, addTime };
+    return { secondsRemaining, totalSeconds, isRunning, start, skip, addTime };
 }
