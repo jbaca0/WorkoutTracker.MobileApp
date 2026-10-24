@@ -13,6 +13,11 @@ import {
 import { useAuth } from '../src/Hooks/useAuth';
 import { Colors } from '../src/Theme/colors';
 
+// Dev-only test account, from the gitignored .env.development.local.
+const devEmail = process.env.EXPO_PUBLIC_DEV_EMAIL;
+const devPassword = process.env.EXPO_PUBLIC_DEV_PASSWORD;
+const showDevLogin = __DEV__ && !!devEmail && !!devPassword;
+
 export default function LoginScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -23,6 +28,13 @@ export default function LoginScreen() {
         if (!email || !password) return;
         setLoading(true);
         await login(email, password);
+        setLoading(false);
+    }
+
+    async function handleDevLogin() {
+        if (!devEmail || !devPassword) return;
+        setLoading(true);
+        await login(devEmail, devPassword);
         setLoading(false);
     }
 
@@ -82,6 +94,16 @@ export default function LoginScreen() {
                             : <Text style={styles.loginButtonText}>Log In</Text>
                         }
                     </Pressable>
+
+                    {showDevLogin && (
+                        <Pressable
+                            style={[styles.devLoginButton, loading && styles.loginButtonDisabled]}
+                            onPress={handleDevLogin}
+                            disabled={loading}
+                        >
+                            <Text style={styles.devLoginButtonText}>Use dev account</Text>
+                        </Pressable>
+                    )}
                 </View>
             </ScrollView>
         </KeyboardAvoidingView>
@@ -165,6 +187,20 @@ const styles = StyleSheet.create({
     loginButtonText: {
         color: '#fff',
         fontSize: 16,
+        fontWeight: '600',
+    },
+    devLoginButton: {
+        borderRadius: 8,
+        paddingVertical: 12,
+        alignItems: 'center',
+        marginTop: 12,
+        borderWidth: 1,
+        borderColor: Colors.border,
+        borderStyle: 'dashed',
+    },
+    devLoginButtonText: {
+        color: Colors.textSecondary,
+        fontSize: 14,
         fontWeight: '600',
     },
 });
