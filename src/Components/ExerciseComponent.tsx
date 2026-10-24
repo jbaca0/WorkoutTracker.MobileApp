@@ -113,6 +113,8 @@ const ExerciseComponent: React.FC<ExerciseProps> = ({ exercise, onChange, onSetC
                             />
                             <Pressable
                                 style={[styles.checkbox, set.Completed && styles.checkboxChecked]}
+                                accessibilityRole="checkbox"
+                                accessibilityState={{ checked: set.Completed }}
                                 onPress={() => handleSetCompletedChanged(set.Key, !set.Completed)}
                             >
                                 {set.Completed && <Text style={styles.checkmark}>✓</Text>}
