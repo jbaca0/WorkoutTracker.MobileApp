@@ -1,6 +1,7 @@
 import Workout from '../Domain/Workout';
 import Exercise from '../Domain/Exercise';
 import Set from '../Domain/Set';
+import { TargetSource } from '../Enums/TargetSource';
 
 describe('Workout', () => {
     describe('constructor', () => {
@@ -13,7 +14,7 @@ describe('Workout', () => {
     });
 
     describe('FromData', () => {
-        it('maps id, date, exercises, previous exercises and sets', () => {
+        it('maps id, date, exercises, targets and sets', () => {
             const workout = Workout.FromData({
                 id: 'w-1',
                 addDateTime: '2026-06-10T08:30:00Z' as unknown as Date,
@@ -21,9 +22,9 @@ describe('Workout', () => {
                     {
                         exerciseInfoId: 'info-1',
                         exerciseInfo: { id: 'info-1', name: 'Bench Press' } as any,
-                        previousExercise: {
-                            exerciseInfoId: 'info-1',
-                            sets: [{ reps: 8, weight: 95 }],
+                        target: {
+                            type: TargetSource.Previous,
+                            sets: [{ weight: 95, reps: 8 }],
                         },
                         sets: [
                             { id: 's-1', reps: 10, weight: 100, completed: true },
@@ -41,9 +42,10 @@ describe('Workout', () => {
             expect(exercise.ExerciseInfo?.Id).toBe('info-1');
             expect(exercise.ExerciseInfo?.Name).toBe('Bench Press');
 
-            expect(exercise.PreviousExercise?.Sets).toHaveLength(1);
-            expect(exercise.PreviousExercise?.Sets[0].Reps).toBe(8);
-            expect(exercise.PreviousExercise?.Sets[0].Weight).toBe(95);
+            expect(exercise.Target?.Type).toBe(TargetSource.Previous);
+            expect(exercise.Target?.Sets).toHaveLength(1);
+            expect(exercise.Target?.Sets[0].Reps).toBe(8);
+            expect(exercise.Target?.Sets[0].Weight).toBe(95);
 
             expect(exercise.Sets).toHaveLength(2);
             expect(exercise.Sets[0]).toMatchObject({ Id: 's-1', Reps: 10, Weight: 100, Completed: true });
@@ -58,7 +60,7 @@ describe('Workout', () => {
             expect(workout.Exercises).toEqual([]);
         });
 
-        it('leaves exercise info and previous exercise undefined when absent', () => {
+        it('leaves exercise info and target undefined when absent', () => {
             const workout = Workout.FromData({
                 id: 'w-3',
                 exercises: [{ exerciseInfoId: 'info-1' }],
@@ -66,7 +68,7 @@ describe('Workout', () => {
 
             const exercise = workout.Exercises[0];
             expect(exercise.ExerciseInfo).toBeUndefined();
-            expect(exercise.PreviousExercise).toBeUndefined();
+            expect(exercise.Target).toBeUndefined();
             expect(exercise.Sets).toEqual([]);
         });
     });

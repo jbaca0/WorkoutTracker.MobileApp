@@ -4,6 +4,7 @@ import Exercise from '../Domain/Exercise';
 import Set from '../Domain/Set';
 import ExerciseInfo from '../Domain/ExerciseInfo';
 import { MuscleGroup } from '../Enums/MuscleGroup';
+import { TargetSource } from '../Enums/TargetSource';
 import { getAccessToken } from '../Utils/tokenStorage';
 
 jest.mock('../Utils/tokenStorage', () => ({
@@ -72,11 +73,11 @@ describe('WorkoutService', () => {
                                 primaryMuscleGroup: MuscleGroup.Chest,
                                 secondaryMuscleGroups: [MuscleGroup.Triceps],
                             },
-                            latestExercise: {
-                                exerciseInfoId: 'info-1',
+                            target: {
+                                type: TargetSource.Previous,
                                 sets: [
-                                    { reps: 10, weight: 100, order: 1 },
-                                    { reps: 8, weight: 110, order: 2 },
+                                    { weight: 100, reps: 10 },
+                                    { weight: 110, reps: 8 },
                                 ],
                             },
                         },
@@ -87,7 +88,7 @@ describe('WorkoutService', () => {
                                 primaryMuscleGroup: MuscleGroup.Legs,
                                 secondaryMuscleGroups: [],
                             },
-                            latestExercise: null,
+                            target: null,
                         },
                     ],
                 })
@@ -108,16 +109,17 @@ describe('WorkoutService', () => {
 
             expect(exercises).toHaveLength(2);
 
-            // Exercise with history: gets one empty set per previous set, ordered
+            // Exercise with history: gets one empty set per target set, ordered
             expect(exercises[0].ExerciseInfo?.Name).toBe('Bench Press');
-            expect(exercises[0].PreviousExercise?.Sets).toHaveLength(2);
+            expect(exercises[0].Target?.Type).toBe(TargetSource.Previous);
+            expect(exercises[0].Target?.Sets).toHaveLength(2);
             expect(exercises[0].Sets).toHaveLength(2);
             expect(exercises[0].Sets.map(s => s.Order)).toEqual([1, 2]);
             expect(exercises[0].Sets.every(s => s.Reps === undefined && s.Weight === undefined)).toBe(true);
 
-            // Exercise without history: no previous exercise and no pre-created sets
+            // Exercise without history: no target and no pre-created sets
             expect(exercises[1].ExerciseInfo?.Name).toBe('Squat');
-            expect(exercises[1].PreviousExercise).toBeUndefined();
+            expect(exercises[1].Target).toBeUndefined();
             expect(exercises[1].Sets).toEqual([]);
         });
     });
