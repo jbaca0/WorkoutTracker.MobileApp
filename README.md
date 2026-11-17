@@ -1,50 +1,89 @@
-# Welcome to your Expo app 👋
+# WorkoutTracker.MobileApp
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+React Native (Expo 54) iOS app for logging workouts at the gym, backed by the
+[WorkoutTracker.Server](https://github.com/jbaca0/WorkoutTracker.Server) .NET 9 API. This is
+the primary client; the earlier React/Capacitor web client is retired.
 
-## Get started
+Expo Router for navigation, Hermes, React Compiler and the New Architecture enabled.
 
-1. Install dependencies
+## Features
 
-   ```bash
-   npm install
-   ```
+- **Live workout logging.** Start empty or from a template, then add exercises and sets as you
+  go. Edits autosave to the server on a three-second debounce, and the active workout's id and
+  start time are kept in device storage, so closing the app mid-session loses nothing — a resume
+  banner offers the workout back on relaunch.
+- **Rest timer** with haptics and an audible cue, driven by `useRestTimer` and kept running
+  while you move between screens.
+- **Templates.** Reusable exercise-and-set skeletons, edited in-app, that seed a new workout
+  with its target weights and reps.
+- **Plans.** Weekly routines that assign a template, or just a note, to each day of the week.
+- **Exercise library** filtered by muscle group, with per-user exercise metadata and goals that
+  carry targets forward from previous sessions.
+- **History.** Calendar view of past workouts plus a read-only detail screen for each.
 
-2. Start the app
+## Architecture
 
-   ```bash
-   npx expo start
-   ```
+File-based routing lives in `app/`; everything reusable lives in `src/`.
 
-In the output, you'll find options to open the app in a
+| Path | Responsibility |
+| --- | --- |
+| `app/index.tsx` | Auth gate — redirects to login or the tabs based on stored tokens |
+| `app/(tabs)/` | `home`, `exercises`, `plans`, `history` |
+| `app/workout/[workoutId].tsx` | Active workout screen |
+| `app/workout-history/[workoutId].tsx` | Read-only past workout |
+| `app/template/[templateId].tsx`, `app/plan/[planId].tsx` | Template and plan editors |
+| `src/Services/` | API access, each service extending `BaseService` |
+| `src/Domain/` | Domain models with `FromData` / `ToData` conversions |
+| `src/DataTransferObjects/` | Wire contracts mirroring the server's `Common` / `Requests` / `Responses` |
+| `src/Hooks/` | `useAuth`, `useActiveWorkout`, `useRestTimer`, `useNotification`, `useAsyncStorage`, `useDebounce` |
+| `src/Components/` | Shared UI — modals, exercise rows, rest timer, resume banner |
+| `src/Theme/colors.ts` | Dark-theme color tokens |
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+### Auth and token handling
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+Access and refresh tokens are persisted in `expo-secure-store` with an in-memory cache so reads
+are synchronous during a session (`src/Utils/tokenStorage.ts`).
 
-## Get a fresh project
+`BaseService` attaches the access token to every request. On a `401` it refreshes once and
+retries the original call; concurrent requests share a single in-flight refresh promise, so one
+expired token cannot fire a stampede of refreshes. If the refresh itself fails, tokens are
+cleared and `sessionManager` notifies the app, which returns the user to the login screen.
 
-When you're ready, run:
+## Running locally
 
 ```bash
-npm run reset-project
+npm install
+cp .env.example .env.local
+npx expo start --ios
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Point the app at a server with `EXPO_PUBLIC_SERVER_URL`:
 
-## Learn more
+| Variable | Purpose |
+| --- | --- |
+| `EXPO_PUBLIC_SERVER_URL` | API base URL. Defaults to `http://localhost:5231` if unset. |
+| `EXPO_PUBLIC_DEV_EMAIL` / `EXPO_PUBLIC_DEV_PASSWORD` | Optional. Enables the login screen's "Use dev account" button, and only read when `__DEV__` is true. Pair with the server's `DevSeed` user. |
 
-To learn more about developing your project with Expo, look at the following resources:
+`.env` is tracked and points at the deployed server; `.env.development` points at localhost.
+Machine-local overrides and anything resembling a credential belong in `.env.local`, which is
+gitignored.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Device builds
 
-## Join the community
+```bash
+npx expo run:ios --device --configuration Release
+```
 
-Join our community of developers creating universal apps.
+Needs a paired iPhone and an Apple development team for signing. Expo rewrites
+`DEVELOPMENT_TEAM` into the `.pbxproj` after each build, which can stop it from regenerating an
+expired provisioning profile — stripping that line before a build keeps signing self-healing.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Tests
+
+```bash
+npm test
+```
+
+236 Jest tests across 33 files (`jest-expo` + React Native Testing Library) covering services,
+domain models, hooks, utilities, components, and a smoke test that mounts each screen. Coverage
+reports via `npx jest --coverage`.
